@@ -14,6 +14,12 @@ tema claro/escuro, interface em inglês e português do Brasil, renderização p
 
 ![Janela principal no tema escuro: corte de TC com painel de metadados e painel Opções](docs/images/main-dark.png)
 
+[![Vídeo de demonstração: tela de abertura, abertura de uma mamografia, janela e nível, mapas de cores, mapa de altura 3D](docs/images/demo-poster.jpg)](docs/demo.mp4)
+
+**Vídeo de demonstração** ([docs/demo.mp4](docs/demo.mp4), cerca de 2 min, 5 MB): a tela de abertura, o estado vazio com os
+erros de exemplo, a abertura de um arquivo DICOM, janela/nível, mapas de cores e o mapa de altura 3D, gravado no
+aplicativo real.
+
 ## Sumário
 
 [Situação](#situação) - [Recursos](#recursos) - [Capturas de tela](#capturas-de-tela) - [Início rápido](#início-rápido) -
@@ -69,7 +75,7 @@ plano com indicador de ocupado.
 | ![Painel de Erros com uma abertura que falhou](docs/images/errors.png) Um arquivo de texto aberto como DICOM: o erro é listado e a TC anterior continua na tela | ![Imagem RGB](docs/images/rgb.png) Imagem RGB (JPEG Baseline) |
 | ![Mapa de altura 3D de um corte de TC](docs/images/3d-heightmap.png) Mapa de altura 3D de uma imagem única | ![Volume 3D de uma série sintética](docs/images/3d-volume.png) Volume 3D de uma série sintética de 48 cortes (esfera, cubo, toro) |
 
-As capturas foram feitas no aplicativo QML real, no macOS (Metal), em 1280 x 800. A série do volume foi gerada
+As capturas foram feitas no aplicativo QML real (build Release), no macOS (Metal), com a janela em 1280 x 800. A série do volume foi gerada
 por um script descartável a partir de `CT_small.dcm`; ela não está no repositório. O painel de metadados mostra
 os nomes de tag padrão do dicionário do DCMTK, que continuam em inglês na interface em português. A tela de
 abertura não aparece nas capturas.
@@ -289,7 +295,7 @@ slope/intercept, janela, inversão e mapa de cores; por isso arrastar a janela �
 truncamento do DCMTK. Medido no scene graph real do Metal, a saída em tons de cinza difere do caminho CPU em no
 máximo 1 nível de cinza (onde float32 e double caem de lados diferentes de um inteiro), em alguns níveis onde
 uma mudança de 1 nível cruza uma entrada íngreme do mapa de cores, e algumas linhas isoladas de texels diferem
-com redução por vizinho mais próximo ([docs/PLAN.md](docs/PLAN.md), seção 3). Imagens coloridas, de 32 bits,
+com redução por vizinho mais próximo. Imagens coloridas, de 32 bits,
 com Modality LUT Sequence ou VOI não linear, e séries com reescalonamento misto, usam sempre o caminho CPU, e a seção Renderização avisa. Se o caminho GPU não puder
 rodar (renderizador por software ou nulo, falha de shader), o controlador volta para a CPU e acrescenta uma
 entrada de informação ao painel de Erros. A escolha é lembrada. Os tempos aparecem no painel Opções; o tempo da
@@ -465,7 +471,7 @@ i18n/                                 tradução para português (BR)
 tests/unit, tests/app, tests/bdd      testes Catch2
 tests/features/                       arquivos de funcionalidade BDD
 tests/data/                           arquivos DICOM de exemplo (+ README, licença)
-docs/                                 PLAN.md, SOUP.md, SBOM.md, sbom/, images/
+docs/                                 SOUP.md, SBOM.md, sbom/, images/, demo.mp4
 packaging/                            ícones, Info.plist, script do AppImage, avisos, README de empacotamento
 .github/workflows/build.yml           workflow de CI e release
 ```
