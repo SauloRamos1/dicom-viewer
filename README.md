@@ -356,7 +356,7 @@ flowchart LR
 |---|---|---|
 | Core | [src/core](src/core) | No Qt GUI types, unit-testable. `DicomFile` (load, `ImageInfo`, codec registration), `Windowing` (presets, `renderFrame`, invert, colormaps), `Metadata`, `Orientation`, `Volume` (multi-frame and series), `Heightmap`, `GpuTexture` / `VolumeGpu` (texture packing), `DicomError` |
 | Qt glue | [src/app](src/app) | `DicomController` (state, loading, W/L, frame, render backend), `DicomImageProvider`, `MetadataModel`, `ErrorModel` / `ErrorText`, `AppSettings`, `LanguageManager`, `HeightmapGeometry`, `VolumeTexture` |
-| QML | [src/app/qml](src/app/qml) | `Main.qml` (splash and window), `MainView`, `TopBar`, `ViewerPane` (`View2D`, `Viewport3D`), `OptionsPane` and its sections, `MetadataPanel`, `ErrorsPanel`, `StatusBar`, `Theme` |
+| QML | [src/app/qml](src/app/qml) | `Main.qml` (splash and window), `MainView`; `Panels/` (`TopBar`, `MetadataPanel`, `ErrorsPanel`, `StatusBar`), `Viewer/` (`ViewerPane`, `View2D`, `Viewport3D`), `Options/` (`OptionsPane` and its sections), `Components/` (reusable controls), `Style/` (`Theme`) |
 | Shaders | [src/app/shaders](src/app/shaders) | `windowing.frag` (GPU 2D path, compiled by `qsb` for every backend); `volume.vert` / `volume.frag` (Quick 3D material snippets for the ray marcher) |
 | Translations | [i18n](i18n) | `dicomviewer_pt_BR.ts`, compiled to `.qm` by `qt_add_translations` |
 
@@ -442,7 +442,12 @@ CMakeLists.txt, CMakePresets.json     build entry points (CMakeUserPresets.json 
 cmake/Dependencies.cmake              DCMTK and Catch2 via FetchContent
 src/core/                             DICOM core (no Qt GUI)
 src/app/                              Qt glue, main.cpp
-src/app/qml/                          QML UI
+src/app/qml/                          QML UI: Main, MainView, Splash at the top, then
+  Style/                                Theme and FontAwesome singletons
+  Components/                           reusable controls (Icon, IconButton, Panel, SliderField, ...)
+  Panels/                               TopBar, MetadataPanel, ErrorsPanel, StatusBar
+  Viewer/                               View2D, GpuImage, Viewport3D and the 3D models
+  Options/                              Options pane and its sections
 src/app/shaders/                      windowing.frag, volume.vert/.frag
 src/app/resources/                    Font Awesome font, app icon
 i18n/                                 Portuguese (BR) translation

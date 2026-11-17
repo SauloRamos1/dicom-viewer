@@ -9,25 +9,17 @@ qt_add_executable(appDicomViewer
 
 # Qt glue without any QML file, also compiled by tests/ (see DICOMAPP_LOGIC_SOURCES).
 set(DICOMAPP_LOGIC_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/AppSettings.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/AppSettings.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/DicomController.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/DicomController.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/DicomImageProvider.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/DicomImageProvider.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/ErrorModel.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/ErrorModel.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/ErrorText.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/ErrorText.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/HeightmapGeometry.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/HeightmapGeometry.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/LanguageManager.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/LanguageManager.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/MetadataModel.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/MetadataModel.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/VolumeTexture.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/VolumeTexture.h
+    AppSettings.cpp AppSettings.h
+    DicomController.cpp DicomController.h
+    DicomImageProvider.cpp DicomImageProvider.h
+    ErrorModel.cpp ErrorModel.h
+    ErrorText.cpp ErrorText.h
+    HeightmapGeometry.cpp HeightmapGeometry.h
+    LanguageManager.cpp LanguageManager.h
+    MetadataModel.cpp MetadataModel.h
+    VolumeTexture.cpp VolumeTexture.h
 )
+list(TRANSFORM DICOMAPP_LOGIC_SOURCES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
 set(DICOMAPP_LOGIC_SOURCES ${DICOMAPP_LOGIC_SOURCES} PARENT_SCOPE)
 
 # The DicomViewer QML module (QML files, fonts, icons, shaders and the Qt glue
@@ -36,67 +28,43 @@ set(DICOMAPP_LOGIC_SOURCES ${DICOMAPP_LOGIC_SOURCES} PARENT_SCOPE)
 function(dicomviewer_add_qml_module target)
     set(QML_DIR ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/qml)
     set(RES_DIR ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/resources)
+    set(SHADER_DIR ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/shaders)
 
     set(QML_SOURCES
-        ${QML_DIR}/Main.qml
-        ${QML_DIR}/MainView.qml
-        ${QML_DIR}/Splash.qml
-        ${QML_DIR}/TopBar.qml
-        ${QML_DIR}/AppToolTip.qml
-        ${QML_DIR}/Icon.qml
-        ${QML_DIR}/IconButton.qml
-        ${QML_DIR}/Panel.qml
-        ${QML_DIR}/View2D.qml
-        ${QML_DIR}/GpuImage.qml
-        ${QML_DIR}/ViewerPane.qml
-        ${QML_DIR}/Viewport3D.qml
-        ${QML_DIR}/HeightmapModel.qml
-        ${QML_DIR}/VolumeModel.qml
-        ${QML_DIR}/ThreeDSection.qml
-        ${QML_DIR}/MetadataPanel.qml
-        ${QML_DIR}/ErrorsPanel.qml
-        ${QML_DIR}/StatusBar.qml
-        ${QML_DIR}/FloatingPane.qml
-        ${QML_DIR}/OptionsPane.qml
-        ${QML_DIR}/OptionsSection.qml
-        ${QML_DIR}/WindowLevelSection.qml
-        ${QML_DIR}/DisplaySection.qml
-        ${QML_DIR}/RenderSection.qml
-        ${QML_DIR}/SegmentedControl.qml
-        ${QML_DIR}/TransformSection.qml
-        ${QML_DIR}/SliderField.qml
-        ${QML_DIR}/SwitchRow.qml
-        ${QML_DIR}/LabeledCombo.qml
-        ${QML_DIR}/Theme.qml
-        ${QML_DIR}/FontAwesome.qml
+        Main.qml MainView.qml Splash.qml
+        # Singletons: theme palette and icon font
+        Style/Theme.qml Style/FontAwesome.qml
+        # Reusable building blocks, no application logic
+        Components/AppToolTip.qml Components/Icon.qml Components/IconButton.qml Components/Panel.qml
+        Components/FloatingPane.qml Components/SegmentedControl.qml Components/SliderField.qml
+        Components/SwitchRow.qml Components/LabeledCombo.qml
+        # Top bar, side panels and status bar
+        Panels/TopBar.qml Panels/MetadataPanel.qml Panels/ErrorsPanel.qml Panels/StatusBar.qml
+        # Image viewport: 2D, GPU, 3D
+        Viewer/ViewerPane.qml Viewer/View2D.qml Viewer/GpuImage.qml Viewer/Viewport3D.qml
+        Viewer/HeightmapModel.qml Viewer/VolumeModel.qml
+        # Floating Options pane and its sections
+        Options/OptionsPane.qml Options/OptionsSection.qml Options/WindowLevelSection.qml
+        Options/DisplaySection.qml Options/RenderSection.qml Options/TransformSection.qml
+        Options/ThreeDSection.qml
     )
-    set(RESOURCE_FILES
-        ${RES_DIR}/fonts/fa-solid-900.otf
-        ${RES_DIR}/icons/app.svg
-    )
+    list(TRANSFORM QML_SOURCES PREPEND ${QML_DIR}/)
+    set(RESOURCE_FILES ${RES_DIR}/fonts/fa-solid-900.otf ${RES_DIR}/icons/app.svg)
     # Quick3D custom material snippets: not complete shaders, so Qt Quick 3D
     # completes and compiles them at run time (unlike windowing.frag below).
-    set(SHADER_DIR ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/shaders)
-    set(MATERIAL_SNIPPETS
-        ${SHADER_DIR}/volume.vert
-        ${SHADER_DIR}/volume.frag
-    )
+    set(MATERIAL_SNIPPETS ${SHADER_DIR}/volume.vert ${SHADER_DIR}/volume.frag)
 
-    # QML and resource files live in subdirectories: publish each under its
-    # bare module path (QML) or its path relative to resources/ (fonts, icons).
-    foreach(f IN LISTS QML_SOURCES)
-        get_filename_component(name ${f} NAME)
-        set_source_files_properties(${f} PROPERTIES QT_RESOURCE_ALIAS ${name})
-    endforeach()
-    foreach(f IN LISTS RESOURCE_FILES)
-        file(RELATIVE_PATH alias ${RES_DIR} ${f})
+    # QML files and shader snippets live in subdirectories: publish each under its
+    # bare module path; fonts and icons under their path relative to resources/.
+    foreach(f IN LISTS QML_SOURCES MATERIAL_SNIPPETS)
+        cmake_path(GET f FILENAME alias)
         set_source_files_properties(${f} PROPERTIES QT_RESOURCE_ALIAS ${alias})
     endforeach()
-    foreach(f IN LISTS MATERIAL_SNIPPETS)
-        get_filename_component(name ${f} NAME)
-        set_source_files_properties(${f} PROPERTIES QT_RESOURCE_ALIAS ${name})
+    foreach(f IN LISTS RESOURCE_FILES)
+        cmake_path(RELATIVE_PATH f BASE_DIRECTORY ${RES_DIR} OUTPUT_VARIABLE alias)
+        set_source_files_properties(${f} PROPERTIES QT_RESOURCE_ALIAS ${alias})
     endforeach()
-    set_source_files_properties(${QML_DIR}/FontAwesome.qml ${QML_DIR}/Theme.qml
+    set_source_files_properties(${QML_DIR}/Style/FontAwesome.qml ${QML_DIR}/Style/Theme.qml
         PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
     qt_add_qml_module(${target}

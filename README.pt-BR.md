@@ -363,7 +363,7 @@ flowchart LR
 |---|---|---|
 | Núcleo | [src/core](src/core) | Sem tipos gráficos do Qt, testável por unidade. `DicomFile` (carregar, `ImageInfo`, registro de codecs), `Windowing` (predefinições, `renderFrame`, inversão, mapas de cores), `Metadata`, `Orientation`, `Volume` (multiquadro e série), `Heightmap`, `GpuTexture` / `VolumeGpu` (empacotamento de texturas), `DicomError` |
 | Cola com o Qt | [src/app](src/app) | `DicomController` (estado, carregamento, janela/nível, quadro, backend de renderização), `DicomImageProvider`, `MetadataModel`, `ErrorModel` / `ErrorText`, `AppSettings`, `LanguageManager`, `HeightmapGeometry`, `VolumeTexture` |
-| QML | [src/app/qml](src/app/qml) | `Main.qml` (tela de abertura e janela), `MainView`, `TopBar`, `ViewerPane` (`View2D`, `Viewport3D`), `OptionsPane` e suas seções, `MetadataPanel`, `ErrorsPanel`, `StatusBar`, `Theme` |
+| QML | [src/app/qml](src/app/qml) | `Main.qml` (tela de abertura e janela), `MainView`; `Panels/` (`TopBar`, `MetadataPanel`, `ErrorsPanel`, `StatusBar`), `Viewer/` (`ViewerPane`, `View2D`, `Viewport3D`), `Options/` (`OptionsPane` e suas seções), `Components/` (controles reutilizáveis), `Style/` (`Theme`) |
 | Shaders | [src/app/shaders](src/app/shaders) | `windowing.frag` (caminho GPU 2D, compilado pelo `qsb` para todos os backends); `volume.vert` / `volume.frag` (trechos de material do Quick 3D para o ray marcher) |
 | Traduções | [i18n](i18n) | `dicomviewer_pt_BR.ts`, compilado para `.qm` por `qt_add_translations` |
 
@@ -453,7 +453,12 @@ CMakeLists.txt, CMakePresets.json     pontos de entrada do build (CMakeUserPrese
 cmake/Dependencies.cmake              DCMTK e Catch2 via FetchContent
 src/core/                             núcleo DICOM (sem parte gráfica do Qt)
 src/app/                              cola com o Qt, main.cpp
-src/app/qml/                          interface QML
+src/app/qml/                          interface QML: Main, MainView e Splash no topo, depois
+  Style/                                singletons Theme e FontAwesome
+  Components/                           controles reutilizáveis (Icon, IconButton, Panel, SliderField, ...)
+  Panels/                               TopBar, MetadataPanel, ErrorsPanel, StatusBar
+  Viewer/                               View2D, GpuImage, Viewport3D e os modelos 3D
+  Options/                              painel Options e suas seções
 src/app/shaders/                      windowing.frag, volume.vert/.frag
 src/app/resources/                    fonte Font Awesome, ícone do app
 i18n/                                 tradução para português (BR)

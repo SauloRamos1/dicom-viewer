@@ -34,7 +34,7 @@ catch_discover_tests(dicomcore_tests)
 
 # Qt glue (controller, models, image provider): compiles the same sources as the
 # app, without the QML module.
-find_package(Qt6 6.12 REQUIRED COMPONENTS Quick Quick3D Concurrent LinguistTools)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Quick QuickControls2 Quick3D Concurrent LinguistTools Svg)
 
 add_executable(dicomapp_tests
     app/main.cpp
@@ -80,7 +80,6 @@ catch_discover_tests(dicomapp_tests
 
 # QML smoke test: compiles the app's QML module (same sources) into its own
 # executable, loads Main and drives the interface offscreen.
-find_package(Qt6 6.12 REQUIRED COMPONENTS QuickControls2 Svg)
 add_executable(dicomapp_qml_tests
     qml/main.cpp
     qml/test_qml_smoke.cpp
