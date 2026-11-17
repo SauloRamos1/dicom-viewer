@@ -1,0 +1,1068 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:c93da728-f901-46ec-a40b-53457726e111",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-11-16T22:52:26Z",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "name": "manual"
+        }
+      ]
+    },
+    "component": {
+      "type": "application",
+      "bom-ref": "app",
+      "name": "dicom-viewer",
+      "version": "0.1.0"
+    }
+  },
+  "components": [
+    {
+      "type": "framework",
+      "bom-ref": "SOUP-001",
+      "name": "Qt Quick",
+      "purl": "pkg:generic/qt-quick@6.12.0",
+      "scope": "required",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/qt/qtdeclarative"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "SOUP-001"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "yes"
+        },
+        {
+          "name": "dv:category",
+          "value": "runtime"
+        }
+      ],
+      "version": "6.12.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-3.0-only"
+          }
+        }
+      ]
+    },
+    {
+      "type": "framework",
+      "bom-ref": "SOUP-002",
+      "name": "Qt Quick Controls 2",
+      "purl": "pkg:generic/qt-quick-controls-2@6.12.0",
+      "scope": "required",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/qt/qtdeclarative"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "SOUP-002"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "yes"
+        },
+        {
+          "name": "dv:category",
+          "value": "runtime"
+        }
+      ],
+      "version": "6.12.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-3.0-only"
+          }
+        }
+      ]
+    },
+    {
+      "type": "framework",
+      "bom-ref": "SOUP-003",
+      "name": "Qt Quick 3D",
+      "purl": "pkg:generic/qt-quick-3d@6.12.0",
+      "scope": "required",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/qt/qtquick3d"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "SOUP-003"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "yes"
+        },
+        {
+          "name": "dv:category",
+          "value": "runtime"
+        }
+      ],
+      "version": "6.12.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-3.0-only"
+          }
+        }
+      ]
+    },
+    {
+      "type": "framework",
+      "bom-ref": "SOUP-004",
+      "name": "Qt Concurrent",
+      "purl": "pkg:generic/qt-concurrent@6.12.0",
+      "scope": "required",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/qt/qtbase"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "SOUP-004"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "yes"
+        },
+        {
+          "name": "dv:category",
+          "value": "runtime"
+        }
+      ],
+      "version": "6.12.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-3.0-only"
+          }
+        }
+      ]
+    },
+    {
+      "type": "framework",
+      "bom-ref": "SOUP-005",
+      "name": "Qt Quick Dialogs",
+      "purl": "pkg:generic/qt-quick-dialogs@6.12.0",
+      "scope": "required",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/qt/qtdeclarative"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "SOUP-005"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "yes"
+        },
+        {
+          "name": "dv:category",
+          "value": "runtime"
+        }
+      ],
+      "version": "6.12.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-3.0-only"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "SOUP-006",
+      "name": "DCMTK",
+      "purl": "pkg:generic/dcmtk@3.7.1",
+      "scope": "required",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/DCMTK/dcmtk"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "SOUP-006"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "yes"
+        },
+        {
+          "name": "dv:category",
+          "value": "runtime"
+        }
+      ],
+      "version": "3.7.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "SOUP-007",
+      "name": "IJG libjpeg 8/12/16",
+      "purl": "pkg:generic/ijg-libjpeg-8%2F12%2F16",
+      "scope": "required",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/DCMTK/dcmtk"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "SOUP-007"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "yes"
+        },
+        {
+          "name": "dv:category",
+          "value": "runtime"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "IJG"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "SOUP-008",
+      "name": "CharLS (DCMTK bundled)",
+      "purl": "pkg:generic/charls-%28dcmtk-bundled%29",
+      "scope": "required",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/DCMTK/dcmtk"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "SOUP-008"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "yes"
+        },
+        {
+          "name": "dv:category",
+          "value": "runtime"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "SOUP-009",
+      "name": "oficonv (Citrus)",
+      "purl": "pkg:generic/oficonv-%28citrus%29",
+      "scope": "required",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/DCMTK/dcmtk"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "SOUP-009"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "yes"
+        },
+        {
+          "name": "dv:category",
+          "value": "runtime"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "SOUP-010",
+      "name": "Font Awesome Free Solid",
+      "purl": "pkg:generic/font-awesome-free-solid@7.3.1",
+      "scope": "required",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://fontawesome.com"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "SOUP-010"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "yes"
+        },
+        {
+          "name": "dv:category",
+          "value": "runtime"
+        }
+      ],
+      "version": "7.3.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "OFL-1.1"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "daa92774861a14e9ccbccc5e73a5fba514271ba4d1bd7e5adbf952182bc00835"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "SOUP-011",
+      "name": "Catch2",
+      "purl": "pkg:generic/catch2@3.16.1",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/catchorg/Catch2"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "SOUP-011"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "test"
+        }
+      ],
+      "version": "3.16.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSL-1.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "data",
+      "bom-ref": "SOUP-012",
+      "name": "pydicom test data",
+      "purl": "pkg:generic/pydicom-test-data",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/pydicom/pydicom"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "SOUP-012"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "test"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "application",
+      "bom-ref": "BUILD-001",
+      "name": "CMake",
+      "purl": "pkg:generic/cmake",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://cmake.org"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "BUILD-001"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "build"
+        }
+      ]
+    },
+    {
+      "type": "application",
+      "bom-ref": "BUILD-002",
+      "name": "Ninja",
+      "purl": "pkg:generic/ninja",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://ninja-build.org"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "BUILD-002"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "build"
+        }
+      ]
+    },
+    {
+      "type": "application",
+      "bom-ref": "BUILD-003",
+      "name": "Apple clang / Xcode",
+      "purl": "pkg:generic/apple-clang-%2F-xcode",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://developer.apple.com/xcode/"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "BUILD-003"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "build"
+        }
+      ]
+    },
+    {
+      "type": "application",
+      "bom-ref": "BUILD-004",
+      "name": "Qt LinguistTools",
+      "purl": "pkg:generic/qt-linguisttools@6.12.0",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/qt/qttools"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "BUILD-004"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "build"
+        }
+      ],
+      "version": "6.12.0"
+    },
+    {
+      "type": "file",
+      "bom-ref": "DATA-CT_small",
+      "name": "CT_small.dcm",
+      "purl": "pkg:generic/ct_small.dcm",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/pydicom/pydicom"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "DATA-CT_small"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "test"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3dd31e5cc835b3f2cdd46c9da1982f59251e78518fefa8163d914631c66437d6"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "DATA-JPEG-lossy",
+      "name": "JPEG-lossy.dcm",
+      "purl": "pkg:generic/jpeg-lossy.dcm",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/pydicom/pydicom"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "DATA-JPEG-lossy"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "test"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c425608e2fcda8332c75d33f890bfe3bae32700608b719046b3d9e789374c292"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "DATA-JPEG2000",
+      "name": "JPEG2000.dcm",
+      "purl": "pkg:generic/jpeg2000.dcm",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/pydicom/pydicom"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "DATA-JPEG2000"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "test"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5be539024e6803029a7b73c0f8e72e88d032e3a0bc05922c0c047344780aa8e1"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "DATA-MR_small",
+      "name": "MR_small.dcm",
+      "purl": "pkg:generic/mr_small.dcm",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/pydicom/pydicom"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "DATA-MR_small"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "test"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3f27d1c22f1a66e80d7bb7c911e8610fd0bb70325a76746a7adb1c0ddefcf2bb"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "DATA-MR_small_RLE",
+      "name": "MR_small_RLE.dcm",
+      "purl": "pkg:generic/mr_small_rle.dcm",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/pydicom/pydicom"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "DATA-MR_small_RLE"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "test"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2e5cb60878dc0acc494298ccdad28fce2cf14c51096e5d8cedab40248ea02e6c"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "DATA-MR_small_bigendian",
+      "name": "MR_small_bigendian.dcm",
+      "purl": "pkg:generic/mr_small_bigendian.dcm",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/pydicom/pydicom"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "DATA-MR_small_bigendian"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "test"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3e4c8c9fe70de4f3be149bbd673fa56f211c8e8e2ff9bac63f70f9dc31b5d108"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "DATA-MR_small_jpeg_ls_lossless",
+      "name": "MR_small_jpeg_ls_lossless.dcm",
+      "purl": "pkg:generic/mr_small_jpeg_ls_lossless.dcm",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/pydicom/pydicom"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "DATA-MR_small_jpeg_ls_lossless"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "test"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b2b69dd2ae854bf7dfada6745709cd5d8a4573ea12387adbbdc56e8be6056206"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "DATA-SC_rgb_jpeg_dcmtk",
+      "name": "SC_rgb_jpeg_dcmtk.dcm",
+      "purl": "pkg:generic/sc_rgb_jpeg_dcmtk.dcm",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/pydicom/pydicom"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "DATA-SC_rgb_jpeg_dcmtk"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "test"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "6548a45a0800626cf70a59766146ff3b790a393ee0c9fca359f92c70f370b382"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "DATA-SC_rgb_rle_2frame",
+      "name": "SC_rgb_rle_2frame.dcm",
+      "purl": "pkg:generic/sc_rgb_rle_2frame.dcm",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/pydicom/pydicom"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "DATA-SC_rgb_rle_2frame"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "test"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "cc9cd098ab099b5f7a18c4599f2858d2f3f3471590ff8a14d4cf7c834692d9f0"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "DATA-SC_rgb_small_odd",
+      "name": "SC_rgb_small_odd.dcm",
+      "purl": "pkg:generic/sc_rgb_small_odd.dcm",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/pydicom/pydicom"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "DATA-SC_rgb_small_odd"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "test"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "fd4b944846665e82ff27ee9f9bec91a21a2de26005f532e82dffc8e848c3c7a0"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "DATA-SC_ybr_full_422_uncompressed",
+      "name": "SC_ybr_full_422_uncompressed.dcm",
+      "purl": "pkg:generic/sc_ybr_full_422_uncompressed.dcm",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/pydicom/pydicom"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "DATA-SC_ybr_full_422_uncompressed"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "test"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "08f6f4935ae225282d8481f297d37b1cf33be8c3d99028f310a9a3f9e8aaf284"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "bom-ref": "DATA-image_dfl",
+      "name": "image_dfl.dcm",
+      "purl": "pkg:generic/image_dfl.dcm",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/pydicom/pydicom"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "DATA-image_dfl"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "test"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0029ebbba17e7c6f081408d433cd28b5d1cfee0eeb4cff509b4d972ffa9daf27"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "app",
+      "dependsOn": [
+        "SOUP-001",
+        "SOUP-002",
+        "SOUP-003",
+        "SOUP-004",
+        "SOUP-005",
+        "SOUP-006",
+        "SOUP-010"
+      ]
+    },
+    {
+      "ref": "SOUP-006",
+      "dependsOn": [
+        "SOUP-007",
+        "SOUP-008",
+        "SOUP-009"
+      ]
+    },
+    {
+      "ref": "SOUP-012",
+      "dependsOn": [
+        "DATA-CT_small",
+        "DATA-JPEG-lossy",
+        "DATA-JPEG2000",
+        "DATA-MR_small",
+        "DATA-MR_small_RLE",
+        "DATA-MR_small_bigendian",
+        "DATA-MR_small_jpeg_ls_lossless",
+        "DATA-SC_rgb_jpeg_dcmtk",
+        "DATA-SC_rgb_rle_2frame",
+        "DATA-SC_rgb_small_odd",
+        "DATA-SC_ybr_full_422_uncompressed",
+        "DATA-image_dfl"
+      ]
+    }
+  ]
+}

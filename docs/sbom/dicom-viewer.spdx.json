@@ -1,0 +1,707 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "dicom-viewer",
+  "documentNamespace": "https://example.org/spdx/dicom-viewer/cc79b5a9-c278-4a2e-9535-08d18f4f8825",
+  "creationInfo": {
+    "created": "2026-11-16T22:52:26Z",
+    "creators": [
+      "Tool: manual"
+    ]
+  },
+  "packages": [
+    {
+      "SPDXID": "SPDXRef-app",
+      "name": "dicom-viewer",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "SPDXID": "SPDXRef-SOUP-001",
+      "name": "Qt Quick",
+      "downloadLocation": "https://github.com/qt/qtdeclarative",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "LGPL-3.0-only",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/qt-quick@6.12.0"
+        }
+      ],
+      "versionInfo": "6.12.0"
+    },
+    {
+      "SPDXID": "SPDXRef-SOUP-002",
+      "name": "Qt Quick Controls 2",
+      "downloadLocation": "https://github.com/qt/qtdeclarative",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "LGPL-3.0-only",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/qt-quick-controls-2@6.12.0"
+        }
+      ],
+      "versionInfo": "6.12.0"
+    },
+    {
+      "SPDXID": "SPDXRef-SOUP-003",
+      "name": "Qt Quick 3D",
+      "downloadLocation": "https://github.com/qt/qtquick3d",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "LGPL-3.0-only",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/qt-quick-3d@6.12.0"
+        }
+      ],
+      "versionInfo": "6.12.0"
+    },
+    {
+      "SPDXID": "SPDXRef-SOUP-004",
+      "name": "Qt Concurrent",
+      "downloadLocation": "https://github.com/qt/qtbase",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "LGPL-3.0-only",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/qt-concurrent@6.12.0"
+        }
+      ],
+      "versionInfo": "6.12.0"
+    },
+    {
+      "SPDXID": "SPDXRef-SOUP-005",
+      "name": "Qt Quick Dialogs",
+      "downloadLocation": "https://github.com/qt/qtdeclarative",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "LGPL-3.0-only",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/qt-quick-dialogs@6.12.0"
+        }
+      ],
+      "versionInfo": "6.12.0"
+    },
+    {
+      "SPDXID": "SPDXRef-SOUP-006",
+      "name": "DCMTK",
+      "downloadLocation": "https://github.com/DCMTK/dcmtk",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "BSD-3-Clause",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/dcmtk@3.7.1"
+        }
+      ],
+      "versionInfo": "3.7.1"
+    },
+    {
+      "SPDXID": "SPDXRef-SOUP-007",
+      "name": "IJG libjpeg 8/12/16",
+      "downloadLocation": "https://github.com/DCMTK/dcmtk",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "IJG",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/ijg-libjpeg-8%2F12%2F16"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-SOUP-008",
+      "name": "CharLS (DCMTK bundled)",
+      "downloadLocation": "https://github.com/DCMTK/dcmtk",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "BSD-3-Clause",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/charls-%28dcmtk-bundled%29"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-SOUP-009",
+      "name": "oficonv (Citrus)",
+      "downloadLocation": "https://github.com/DCMTK/dcmtk",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/oficonv-%28citrus%29"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-SOUP-010",
+      "name": "Font Awesome Free Solid",
+      "downloadLocation": "https://fontawesome.com",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "OFL-1.1",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/font-awesome-free-solid@7.3.1"
+        }
+      ],
+      "versionInfo": "7.3.1",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "daa92774861a14e9ccbccc5e73a5fba514271ba4d1bd7e5adbf952182bc00835"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-SOUP-011",
+      "name": "Catch2",
+      "downloadLocation": "https://github.com/catchorg/Catch2",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "BSL-1.0",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/catch2@3.16.1"
+        }
+      ],
+      "versionInfo": "3.16.1"
+    },
+    {
+      "SPDXID": "SPDXRef-SOUP-012",
+      "name": "pydicom test data",
+      "downloadLocation": "https://github.com/pydicom/pydicom",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/pydicom-test-data"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-BUILD-001",
+      "name": "CMake",
+      "downloadLocation": "https://cmake.org",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/cmake"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-BUILD-002",
+      "name": "Ninja",
+      "downloadLocation": "https://ninja-build.org",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/ninja"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-BUILD-003",
+      "name": "Apple clang / Xcode",
+      "downloadLocation": "https://developer.apple.com/xcode/",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/apple-clang-%2F-xcode"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-BUILD-004",
+      "name": "Qt LinguistTools",
+      "downloadLocation": "https://github.com/qt/qttools",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/qt-linguisttools@6.12.0"
+        }
+      ],
+      "versionInfo": "6.12.0"
+    },
+    {
+      "SPDXID": "SPDXRef-DATA-CT_small",
+      "name": "CT_small.dcm",
+      "downloadLocation": "https://github.com/pydicom/pydicom",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/ct_small.dcm"
+        }
+      ],
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "3dd31e5cc835b3f2cdd46c9da1982f59251e78518fefa8163d914631c66437d6"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-DATA-JPEG-lossy",
+      "name": "JPEG-lossy.dcm",
+      "downloadLocation": "https://github.com/pydicom/pydicom",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/jpeg-lossy.dcm"
+        }
+      ],
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c425608e2fcda8332c75d33f890bfe3bae32700608b719046b3d9e789374c292"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-DATA-JPEG2000",
+      "name": "JPEG2000.dcm",
+      "downloadLocation": "https://github.com/pydicom/pydicom",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/jpeg2000.dcm"
+        }
+      ],
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "5be539024e6803029a7b73c0f8e72e88d032e3a0bc05922c0c047344780aa8e1"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-DATA-MR_small",
+      "name": "MR_small.dcm",
+      "downloadLocation": "https://github.com/pydicom/pydicom",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/mr_small.dcm"
+        }
+      ],
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "3f27d1c22f1a66e80d7bb7c911e8610fd0bb70325a76746a7adb1c0ddefcf2bb"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-DATA-MR_small_RLE",
+      "name": "MR_small_RLE.dcm",
+      "downloadLocation": "https://github.com/pydicom/pydicom",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/mr_small_rle.dcm"
+        }
+      ],
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "2e5cb60878dc0acc494298ccdad28fce2cf14c51096e5d8cedab40248ea02e6c"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-DATA-MR_small_bigendian",
+      "name": "MR_small_bigendian.dcm",
+      "downloadLocation": "https://github.com/pydicom/pydicom",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/mr_small_bigendian.dcm"
+        }
+      ],
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "3e4c8c9fe70de4f3be149bbd673fa56f211c8e8e2ff9bac63f70f9dc31b5d108"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-DATA-MR_small_jpeg_ls_lossless",
+      "name": "MR_small_jpeg_ls_lossless.dcm",
+      "downloadLocation": "https://github.com/pydicom/pydicom",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/mr_small_jpeg_ls_lossless.dcm"
+        }
+      ],
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b2b69dd2ae854bf7dfada6745709cd5d8a4573ea12387adbbdc56e8be6056206"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-DATA-SC_rgb_jpeg_dcmtk",
+      "name": "SC_rgb_jpeg_dcmtk.dcm",
+      "downloadLocation": "https://github.com/pydicom/pydicom",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/sc_rgb_jpeg_dcmtk.dcm"
+        }
+      ],
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "6548a45a0800626cf70a59766146ff3b790a393ee0c9fca359f92c70f370b382"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-DATA-SC_rgb_rle_2frame",
+      "name": "SC_rgb_rle_2frame.dcm",
+      "downloadLocation": "https://github.com/pydicom/pydicom",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/sc_rgb_rle_2frame.dcm"
+        }
+      ],
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "cc9cd098ab099b5f7a18c4599f2858d2f3f3471590ff8a14d4cf7c834692d9f0"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-DATA-SC_rgb_small_odd",
+      "name": "SC_rgb_small_odd.dcm",
+      "downloadLocation": "https://github.com/pydicom/pydicom",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/sc_rgb_small_odd.dcm"
+        }
+      ],
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "fd4b944846665e82ff27ee9f9bec91a21a2de26005f532e82dffc8e848c3c7a0"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-DATA-SC_ybr_full_422_uncompressed",
+      "name": "SC_ybr_full_422_uncompressed.dcm",
+      "downloadLocation": "https://github.com/pydicom/pydicom",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/sc_ybr_full_422_uncompressed.dcm"
+        }
+      ],
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "08f6f4935ae225282d8481f297d37b1cf33be8c3d99028f310a9a3f9e8aaf284"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-DATA-image_dfl",
+      "name": "image_dfl.dcm",
+      "downloadLocation": "https://github.com/pydicom/pydicom",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/image_dfl.dcm"
+        }
+      ],
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "0029ebbba17e7c6f081408d433cd28b5d1cfee0eeb4cff509b4d972ffa9daf27"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "spdxElementId": "SPDXRef-DOCUMENT",
+      "relationshipType": "DESCRIBES",
+      "relatedSpdxElement": "SPDXRef-app"
+    },
+    {
+      "spdxElementId": "SPDXRef-app",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-SOUP-001"
+    },
+    {
+      "spdxElementId": "SPDXRef-app",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-SOUP-002"
+    },
+    {
+      "spdxElementId": "SPDXRef-app",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-SOUP-003"
+    },
+    {
+      "spdxElementId": "SPDXRef-app",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-SOUP-004"
+    },
+    {
+      "spdxElementId": "SPDXRef-app",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-SOUP-005"
+    },
+    {
+      "spdxElementId": "SPDXRef-app",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-SOUP-006"
+    },
+    {
+      "spdxElementId": "SPDXRef-SOUP-006",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-SOUP-007"
+    },
+    {
+      "spdxElementId": "SPDXRef-SOUP-006",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-SOUP-008"
+    },
+    {
+      "spdxElementId": "SPDXRef-SOUP-006",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-SOUP-009"
+    },
+    {
+      "spdxElementId": "SPDXRef-app",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-SOUP-010"
+    },
+    {
+      "spdxElementId": "SPDXRef-SOUP-011",
+      "relationshipType": "TEST_DEPENDENCY_OF",
+      "relatedSpdxElement": "SPDXRef-app"
+    },
+    {
+      "spdxElementId": "SPDXRef-SOUP-012",
+      "relationshipType": "TEST_DEPENDENCY_OF",
+      "relatedSpdxElement": "SPDXRef-app"
+    },
+    {
+      "spdxElementId": "SPDXRef-BUILD-001",
+      "relationshipType": "BUILD_TOOL_OF",
+      "relatedSpdxElement": "SPDXRef-app"
+    },
+    {
+      "spdxElementId": "SPDXRef-BUILD-002",
+      "relationshipType": "BUILD_TOOL_OF",
+      "relatedSpdxElement": "SPDXRef-app"
+    },
+    {
+      "spdxElementId": "SPDXRef-BUILD-003",
+      "relationshipType": "BUILD_TOOL_OF",
+      "relatedSpdxElement": "SPDXRef-app"
+    },
+    {
+      "spdxElementId": "SPDXRef-BUILD-004",
+      "relationshipType": "BUILD_TOOL_OF",
+      "relatedSpdxElement": "SPDXRef-app"
+    },
+    {
+      "spdxElementId": "SPDXRef-SOUP-012",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-DATA-CT_small"
+    },
+    {
+      "spdxElementId": "SPDXRef-SOUP-012",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-DATA-JPEG-lossy"
+    },
+    {
+      "spdxElementId": "SPDXRef-SOUP-012",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-DATA-JPEG2000"
+    },
+    {
+      "spdxElementId": "SPDXRef-SOUP-012",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-DATA-MR_small"
+    },
+    {
+      "spdxElementId": "SPDXRef-SOUP-012",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-DATA-MR_small_RLE"
+    },
+    {
+      "spdxElementId": "SPDXRef-SOUP-012",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-DATA-MR_small_bigendian"
+    },
+    {
+      "spdxElementId": "SPDXRef-SOUP-012",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-DATA-MR_small_jpeg_ls_lossless"
+    },
+    {
+      "spdxElementId": "SPDXRef-SOUP-012",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-DATA-SC_rgb_jpeg_dcmtk"
+    },
+    {
+      "spdxElementId": "SPDXRef-SOUP-012",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-DATA-SC_rgb_rle_2frame"
+    },
+    {
+      "spdxElementId": "SPDXRef-SOUP-012",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-DATA-SC_rgb_small_odd"
+    },
+    {
+      "spdxElementId": "SPDXRef-SOUP-012",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-DATA-SC_ybr_full_422_uncompressed"
+    },
+    {
+      "spdxElementId": "SPDXRef-SOUP-012",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-DATA-image_dfl"
+    }
+  ]
+}
