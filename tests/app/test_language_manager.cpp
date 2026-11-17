@@ -116,7 +116,7 @@ TEST_CASE("Switching language retranslates the QML bindings", "[app][language]")
 TEST_CASE("The chosen language persists in an isolated settings scope", "[app][language]")
 {
     const IsolatedSettings isolated;
-    CHECK(QSettings().fileName().startsWith(QString::fromStdString(isolated.path().string())));
+    CHECK(QSettings().fileName().startsWith(QString::fromStdString(isolated.path().generic_string())));
 
     {
         QQmlEngine engine;

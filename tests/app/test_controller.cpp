@@ -73,7 +73,7 @@ TEST_CASE("Opening a monochrome file shows it with the values stored in the file
     REQUIRE(controller.hasImage());
     CHECK(loaded == 1);
     CHECK(controller.fileName() == QStringLiteral("CT_small.dcm"));
-    CHECK(controller.filePath() == QString::fromStdString(path.string()));
+    CHECK(controller.filePath() == QString::fromStdString(path.generic_string()));
     CHECK(controller.rows() == 128);
     CHECK(controller.columns() == 128);
     CHECK(controller.bitsStored() == 16);

@@ -26,13 +26,15 @@ namespace {
 // What the offscreen platform prints that says nothing about the QML: Qt Quick 3D cannot render
 // without an RHI-based scene graph (these two messages only), and the platform plugin's own
 // notices (log category qt.qpa.*; and the offscreen plugin's "does not support setting window
-// opacity", which the splash fade-out triggers). Every other
+// opacity", which the splash fade-out triggers), and the "QFontDatabase: Cannot find font directory"
+// notice of a Qt installed without lib/fonts (the Windows CI runner). Every other
 // warning, critical or fatal message is a defect.
 bool isKnownEnvironmentNotice(const QMessageLogContext &context, const QString &message)
 {
     if (context.category != nullptr && qstrncmp(context.category, "qt.qpa.", 7) == 0)
         return true;
     return message == QLatin1String("This plugin does not support setting window opacity")
+        || message.startsWith(QLatin1String("QFontDatabase: Cannot find font directory"))
         || message.contains(QLatin1String("QSGRendererInterface::isApiRhiBased"))
         || message.startsWith(QLatin1String("The Qt Quick scene is using a rendering method that is not based on QRhi"));
 }
