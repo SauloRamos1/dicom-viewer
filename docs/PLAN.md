@@ -51,6 +51,7 @@ Mockup approved (Excalidraw). Main window, top to bottom:
 - **Render backend: CPU / GPU** toggle + last render time (ms) for comparison
 - 3D: Depth scale (heightmap), Threshold, Opacity, Sample steps (volume)
 - Reset
+- Step 4 notes: rotate/flip state lives in `DicomController` (`viewRotation`, `flipHorizontal`, `flipVertical`) so the orientation letters follow it (`dv::transformLabels`); View2D only draws it. Rotation is applied first, flips mirror the screen. The viewer area has a minimum width of 332 so the 300 px pane always fits inside.
 
 **Status bar**: file name, size, bits, photometric, frames, transfer syntax.
 
@@ -80,9 +81,9 @@ src/
     HeightmapGeometry  QQuick3DGeometry from current frame
     VolumeTexture      QQuick3DTextureData (3D texture) for ray-march material
   app/qml/         (inside src/app so Qt Creator lists the files under the target)
-  Main.qml, Splash.qml, TopBar.qml, View2D.qml (ViewerPane.qml arrives with View3D.qml),
-  View3D.qml, OptionsPane.qml, MetadataPanel.qml, ErrorsPanel.qml, StatusBar.qml, Icon.qml
-  shaders/ windowing.frag (GPU path), volume.frag (ray-march)
+  Main.qml, Splash.qml, TopBar.qml, ViewerPane.qml (View2D + Viewport3D), View2D.qml,
+  Viewport3D.qml (HeightmapModel.qml, VolumeModel.qml), ThreeDSection.qml, OptionsPane.qml, MetadataPanel.qml, ErrorsPanel.qml, StatusBar.qml, Icon.qml
+  shaders/ windowing.frag (GPU path, qsb), volume.vert/.frag (ray-march, Quick3D snippets)
   app/resources/fonts/fa-solid-900.otf, app/resources/icons/app.svg
 i18n/dicomviewer_pt_BR.ts
 tests/
@@ -93,14 +94,28 @@ Render paths (same input, comparable output):
 - **CPU**: `Windowing` -> 8-bit `QImage` (Grayscale8 / RGB888) -> image provider.
 - **GPU**: raw 16-bit values uploaded once as texture; `ShaderEffect` applies slope/intercept, W/L, invert, colormap.
 - Render time measured with `QElapsedTimer` (CPU) and frame-swap timing (GPU), shown in Options.
+- Step 5 notes (what was built, and where it differs from the sketch above):
+  - **Texture encoding**: Qt Quick textures are 8 bits per channel, so the stored value `u = stored - storedMin` (storedMin = -2^(bitsStored-1) for signed data) goes into an RGBA8 `QImage` as R = high byte, G = low byte, B = 0, A = 255 (`dv::packFrame`, `core/GpuTexture.h`), served as `image://dicomraw/<revision>`. Portable (no R16/integer textures, same on Metal, D3D, Vulkan, GL). 8-bit images use the same pack. The packed frame is built once per frame/file; window, invert and colormap only change shader uniforms.
+  - **Shader** `src/app/shaders/windowing.frag` (GLSL 440, `qt_add_shaders`, output `windowing.frag.qsb` next to the QML files). The texture is sampled with nearest filtering and the shader does its own bilinear blend (window and colormap per texel, then mix) when "Smooth interpolation" is on, matching what the hardware does for the CPU path's 8-bit image. Colormaps are a 256x1 texture, `image://dicomlut/<colormap>`. `GpuImage.qml` fits the effect like `Image.PreserveAspectFit` and replaces only the `Image` inside View2D's transform items, so zoom, pan, rotate and flip are shared.
+  - **Windowing math**: DCMTK truncates (`floor`) the scaled value and, for MONOCHROME1, truncates the already inverted ramp; `dv::applyWindow` rounds. The shader follows DCMTK so both backends show the same gray levels (max 1 level apart, only where float32 vs double lands on an integer boundary; measured on the real Metal scene graph: at most 1 level for grayscale, a few levels where a 1-level change crosses a steep colormap entry, and a few isolated texel rows differ with nearest-neighbour minification).
+  - **Fallback to CPU**: colour images, 32-bit images and files with a Modality LUT Sequence (`gpuCapable == false`) stay on the CPU path (the Render section says so); the GPU choice is kept for the next file. `gpuAvailable` turns false when `GraphicsInfo.api` is Software/OpenVG/Null or the shader fails to load (`ShaderEffect.status == Error`): the controller forces CPU, the GPU segment is dimmed with an explanation and the Errors panel gets one info entry (`ErrorCode::GpuUnavailable`). The choice itself is stored by `AppSettings.renderBackend` ("cpu" default).
+  - **Switching** never flickers: `gpuActive` (which content is on screen) only flips once the new backend's image is ready.
+  - **Timing**: CPU = DicomImage render + 8-bit conversion. GPU = packing time on frame/file change plus the time from the property change to the next `frameSwapped`; that is a proxy that includes waiting for the next vsync (about 14 ms steps on a 72 Hz display), so small GPU values are not directly comparable with CPU values. The Options pane shows the last value, its backend and the mean of the last 10 samples since the backend was chosen.
+  - **Benchmarks** (Catch2, hidden by default): `build/debug/tests/dicomcore_tests "[!benchmark][gpu]"` compares `renderFrame` against `packFrame` on a generated 2048x2048 16-bit image; use a release build (`cmake --preset release-local`) for meaningful numbers. Real GPU timing is measured in the app.
 
 3D:
 - **Single frame**: heightmap mesh, height = windowed intensity * depth scale, colormap as vertex color.
 - **Multi-frame / series**: 3D texture + ray-march custom material with threshold/opacity.
+- Step 6 notes (what was built, and where it differs from the sketch above):
+  - **Heightmap**: `dv::buildHeightmap` (core/Heightmap.*) turns the windowed gray levels into an indexed mesh (position, normal, colour per vertex; decimated by a whole step to at most 512 x 512 vertices, cells averaged). Heights span +-50 around y = 0, so the depth scale is only the model's y scale (no rebuild); the mesh is rebuilt off the GUI thread only when frame, window, invert or colormap change (builds coalesce like renders) and only while the 3D view is shown and the file has no volume. `HeightmapGeometry` keeps its own copy of the buffers. Light: one directional light (0.8) plus a dim ambient term, `PrincipledMaterial` with vertex colours.
+  - **Volume encoding**: one **R16 (unorm) 3D texture** (`core/VolumeGpu.*`): modality values mapped linearly from [min, max] to 0..65535, rebuilt in the shader as `min + s * range` and then windowed like 2D. 16 bits keep a 12-bit CT range lossless and R16 unorm is filterable on Metal, D3D, Vulkan and GL (integer textures are not). Uploaded once per volume (`VolumeTexture : QQuick3DTextureData`). Capped at 128 MB (and 2048 per side) by averaging whole f x f x f blocks; the Options pane says "Volume downsampled by N". Voxel spacing scales the proxy cube so non-cubic voxels keep their aspect.
+  - **Ray march** (`shaders/volume.vert/.frag`): front to back through the cube, early termination at alpha 0.97, opacity corrected for the real step so the look does not depend on the sample count, colormap from a 256x1 texture (`ColormapTexture`), invert and MONOCHROME1 as one flag. Deviation: these are Quick3D `CustomMaterial` *snippets* (snippets with a `MAIN()`, not complete shaders), which Qt Quick 3D completes and cross-compiles itself at run time, so they are plain resources and not `qt_add_shaders` outputs like `windowing.frag`. Run on Metal; nothing in them is backend specific (no integer textures, bounded loop).
+  - **Series**: `dv::loadSeries` (core/Volume.*) keeps the most common Series Instance UID, sorts by position (Instance Number fallback) and returns the slice files with the volume; `DicomController::openSeries(folder)` (also used when `open` gets a directory, so a directory argument on the command line works). Slice N is frame N of the 2D view. A series of one slice falls back to the single image with an Info entry (`SingleSliceSeries`); an empty folder gives `NoDicomFiles`. The 3D state is `view3D` (set from the TopBar button), `hasVolume`, `volumeSize/Spacing/Downsample`.
+  - **Options**: the "3D" section only exists in the 3D view and shows only what the current kind uses (Depth + Wireframe for a heightmap, Threshold + Opacity + Steps for a volume); Transform and Render are hidden in 3D; only depth scale, threshold, opacity and steps persist. The camera (orbit, zoom, Ctrl+drag pan) is `OrbitCameraController` and is not remembered.
 
 ## 4. Error handling
 
-`ErrorCode`: FileNotFound, FileUnreadable, NotDicom, NoPixelData, UnsupportedTransferSyntax, UnsupportedPhotometric, CorruptPixelData, DecodeFailed, VolumeInconsistent, FrameOutOfRange. Each maps to a translated user message plus a technical detail (DCMTK `OFCondition` text). Load runs off the GUI thread (`QtConcurrent`), and the UI shows a busy indicator. A failed load leaves the previous image, metadata and window untouched; the one exception is a valid file without Pixel Data, which shows its metadata (no image) plus the error. Starting a new load, or New, makes any load in flight obsolete (generation counter). Rendering also runs on a worker; changes made while a render runs are coalesced into one more render with the latest values.
+`ErrorCode`: FileNotFound, FileUnreadable, NotDicom, NoPixelData, UnsupportedTransferSyntax, UnsupportedPhotometric, CorruptPixelData, DecodeFailed, VolumeInconsistent, FrameOutOfRange, plus the Info-level notice GpuUnavailable. Each maps to a translated user message plus a technical detail (DCMTK `OFCondition` text). Load runs off the GUI thread (`QtConcurrent`), and the UI shows a busy indicator. A failed load leaves the previous image, metadata and window untouched; the one exception is a valid file without Pixel Data, which shows its metadata (no image) plus the error. Starting a new load, or New, makes any load in flight obsolete (generation counter). Rendering also runs on a worker; changes made while a render runs are coalesced into one more render with the latest values.
 
 ## 5. Tests
 

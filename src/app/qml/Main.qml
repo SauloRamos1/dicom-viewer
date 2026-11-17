@@ -10,7 +10,10 @@ ApplicationWindow {
     // before the splash appears so that it already uses the saved theme and
     // language; the progress bar still counts them.
     readonly property var startupSteps: [
-        { label: () => qsTr("Loading settings"), run: () => AppSettings.load() },
+        { label: () => qsTr("Loading settings"), run: () => {
+            AppSettings.load()
+            DicomController.renderBackend = AppSettings.renderBackend === "gpu" ? DicomController.Gpu : DicomController.Cpu
+        } },
         { label: () => qsTr("Loading translations"), run: () => LanguageManager.init() },
         { label: () => qsTr("Registering image codecs"), run: () => AppInfo.registerCodecs() },
         { label: () => qsTr("Creating main window"), run: () => content.active = true }

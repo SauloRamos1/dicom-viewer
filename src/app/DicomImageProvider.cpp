@@ -46,3 +46,29 @@ QImage DicomImageProvider::requestImage(const QString &, QSize *size, const QSiz
         *size = image.size();
     return image;
 }
+
+ColormapImageProvider::ColormapImageProvider()
+    : QQuickImageProvider(QQuickImageProvider::Image)
+{
+}
+
+QImage ColormapImageProvider::requestImage(const QString &id, QSize *size, const QSize &)
+{
+    bool ok = false;
+    const int index = id.toInt(&ok);
+    const auto colormap = ok && index >= 0 && index <= static_cast<int>(dv::Colormap::Jet)
+        ? static_cast<dv::Colormap>(index)
+        : dv::Colormap::Gray;
+    const dv::ColorLut &lut = dv::colormapLut(colormap);
+    QImage image(static_cast<int>(lut.size()), 1, QImage::Format_RGBA8888);
+    auto *pixels = image.scanLine(0);
+    for (size_t i = 0; i < lut.size(); ++i) {
+        pixels[i * 4] = lut[i][0];
+        pixels[i * 4 + 1] = lut[i][1];
+        pixels[i * 4 + 2] = lut[i][2];
+        pixels[i * 4 + 3] = 255;
+    }
+    if (size)
+        *size = image.size();
+    return image;
+}

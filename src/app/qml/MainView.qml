@@ -9,6 +9,9 @@ import DicomViewer
 // run. Files arrive from the Open dialog, a drop on the window or the command line.
 Item {
     Component.onCompleted: {
+        optionsPane.fx = AppSettings.optionsX
+        optionsPane.fy = AppSettings.optionsY
+        topBar.optionsChecked = AppSettings.optionsOpen
         if (AppInfo.startupFile.toString() !== "")
             DicomController.open(AppInfo.startupFile)
     }
@@ -31,6 +34,20 @@ Item {
             onToggleTheme: AppSettings.theme = Theme.dark ? "light" : "dark"
             onNewRequested: DicomController.reset()
             onOpenRequested: fileDialog.open()
+            onOpenFolderRequested: folderDialog.open()
+            onOptionsCheckedChanged: {
+                AppSettings.optionsOpen = optionsChecked
+                // Keep the arrow keys stepping frames after the pane goes away.
+                if (!optionsChecked && optionsPane.containsFocus())
+                    viewport.focusView()
+            }
+        }
+
+        // The TopBar's 3D button decides which view the controller prepares data for.
+        Binding {
+            target: DicomController
+            property: "view3D"
+            value: topBar.view3DChecked
         }
 
         SplitView {
@@ -57,9 +74,27 @@ Item {
                     anchors.fill: parent
                 }
             }
-            View2D {
+            Item {
                 SplitView.fillWidth: true
-                SplitView.minimumWidth: 240
+                // Room for the Options pane (300) and its margins.
+                SplitView.minimumWidth: 332
+                clip: true
+
+                ViewerPane {
+                    id: viewport
+                    anchors.fill: parent
+                    smoothing: AppSettings.smoothing
+                }
+                OptionsPane {
+                    id: optionsPane
+                    viewer: viewport
+                    open: topBar.optionsChecked
+                    onCloseRequested: topBar.optionsChecked = false
+                    onPositionCommitted: {
+                        AppSettings.optionsX = fx
+                        AppSettings.optionsY = fy
+                    }
+                }
             }
             Panel {
                 open: topBar.errorsChecked
@@ -83,6 +118,18 @@ Item {
         onAccepted: {
             AppSettings.lastFolder = currentFolder
             DicomController.open(selectedFile)
+        }
+    }
+
+    FolderDialog {
+        id: folderDialog
+        title: qsTr("Open DICOM series folder")
+        currentFolder: AppSettings.lastFolder
+        onAccepted: {
+            // The dialog next time starts beside the folder, not inside it.
+            const folder = selectedFolder.toString().replace(/\/+$/, "")
+            AppSettings.lastFolder = folder.substring(0, folder.lastIndexOf("/"))
+            DicomController.openSeries(selectedFolder)
         }
     }
 

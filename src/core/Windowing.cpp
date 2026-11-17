@@ -26,6 +26,17 @@ std::uint8_t applyWindow(double value, Voi voi) noexcept
     return static_cast<std::uint8_t>(std::lround(((value - mid) / (width - 1.0) + 0.5) * 255.0));
 }
 
+ValueRange modalityRange(const ImageInfo& info) noexcept
+{
+    const int allocated = info.bitsStored > 0 ? info.bitsStored : info.bitsAllocated;
+    const int bits = std::clamp(allocated, 1, 32);
+    const double span = std::ldexp(1.0, bits);
+    const double lowest = info.pixelRepresentation == 1 ? -span / 2 : 0.0;
+    const double a = lowest * info.rescaleSlope + info.rescaleIntercept;
+    const double b = (lowest + span - 1) * info.rescaleSlope + info.rescaleIntercept;
+    return {std::min(a, b), std::max(a, b)};
+}
+
 std::expected<Voi, DicomError> presetVoi(WindowPreset preset, const DicomFile& file, int frame)
 {
     switch (preset) {

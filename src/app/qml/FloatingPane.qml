@@ -3,7 +3,8 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 
 // Floating panel that fades and scales in/out when `open` changes (used by the
-// Options pane). It stays visible until the closing animation has finished.
+// Options pane). It stays visible until the closing animation has finished and
+// keeps mouse presses and wheel turns from reaching the item below it.
 Pane {
     id: root
 
@@ -25,5 +26,12 @@ Pane {
         radius: 8
         color: Theme.surfaceRaised
         border.color: Theme.border
+
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.AllButtons
+            hoverEnabled: true
+            onWheel: wheel => wheel.accepted = true
+        }
     }
 }

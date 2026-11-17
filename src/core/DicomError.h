@@ -18,6 +18,9 @@ enum class ErrorCode {
     DecodeFailed,
     VolumeInconsistent,
     FrameOutOfRange,
+    GpuUnavailable, // app notice (Info severity): the shader path cannot run, the CPU path is used
+    NoDicomFiles,   // a series folder holds nothing that opens as a DICOM image
+    SingleSliceSeries, // app notice (Info severity): the series has one slice, shown as a plain image
 };
 
 enum class Severity { Info, Warning, Error };
@@ -47,6 +50,9 @@ constexpr std::string_view toString(ErrorCode code) noexcept
     case ErrorCode::DecodeFailed: return "DecodeFailed";
     case ErrorCode::VolumeInconsistent: return "VolumeInconsistent";
     case ErrorCode::FrameOutOfRange: return "FrameOutOfRange";
+    case ErrorCode::GpuUnavailable: return "GpuUnavailable";
+    case ErrorCode::NoDicomFiles: return "NoDicomFiles";
+    case ErrorCode::SingleSliceSeries: return "SingleSliceSeries";
     }
     return "Unknown";
 }
@@ -65,6 +71,9 @@ constexpr std::string_view defaultMessage(ErrorCode code) noexcept
     case ErrorCode::DecodeFailed: return "Image could not be decoded";
     case ErrorCode::VolumeInconsistent: return "Slices do not form a consistent volume";
     case ErrorCode::FrameOutOfRange: return "Frame index out of range";
+    case ErrorCode::GpuUnavailable: return "GPU rendering unavailable, using CPU";
+    case ErrorCode::NoDicomFiles: return "No DICOM files found";
+    case ErrorCode::SingleSliceSeries: return "Series has a single slice";
     }
     return "Unknown error";
 }

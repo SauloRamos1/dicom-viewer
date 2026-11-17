@@ -1,20 +1,20 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Controls.Material
-import QtQuick.Layouts
 import DicomViewer
 
 // 2D viewport: the rendered frame on black, with orientation letters, W/L and
 // frame overlays. Mouse: wheel = zoom about the cursor, left drag = pan,
 // double click = fit, right drag = window width (horizontal) and level
-// (vertical). Arrow keys / Page Up / Page Down step through frames. Zoom is
-// relative to the fitted image (1 = fit, 0.1 = 10%, 20 = 2000%).
+// (vertical). R / Shift+R rotate right / left and H / V flip (the controller
+// holds that transform); the frame keys and the empty state are ViewerPane's.
+// Zoom is relative to the fitted image (1 = fit, 0.1 = 10%, 20 = 2000%).
 Rectangle {
     id: root
 
     readonly property real minZoom: 0.1
     readonly property real maxZoom: 20
     property bool smoothing: true
+    readonly property real zoom: canvas.scale
 
     function fit() {
         fitAnimation.stop()
@@ -25,6 +25,11 @@ Rectangle {
 
     function fitAnimated() {
         fitAnimation.restart()
+    }
+
+    // Zoom about the viewport centre (the Options pane's zoom control).
+    function setZoom(value) {
+        zoomAt(value / canvas.scale, Qt.point(width / 2, height / 2))
     }
 
     function zoomAt(factor, cursor) {
@@ -40,13 +45,18 @@ Rectangle {
 
     color: Theme.viewportBg
     clip: true
-    focus: true
 
     Keys.onPressed: event => {
-        if (event.key === Qt.Key_Left || event.key === Qt.Key_Up || event.key === Qt.Key_PageUp)
-            DicomController.frame--
-        else if (event.key === Qt.Key_Right || event.key === Qt.Key_Down || event.key === Qt.Key_PageDown)
-            DicomController.frame++
+        if (event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))
+            return
+        else if (event.key === Qt.Key_R && (event.modifiers & Qt.ShiftModifier))
+            DicomController.rotateLeft()
+        else if (event.key === Qt.Key_R)
+            DicomController.rotateRight()
+        else if (event.key === Qt.Key_H)
+            DicomController.flipHorizontal = !DicomController.flipHorizontal
+        else if (event.key === Qt.Key_V)
+            DicomController.flipVertical = !DicomController.flipVertical
         else
             return
         event.accepted = true
@@ -59,6 +69,24 @@ Rectangle {
         }
     }
 
+    // GPU path timing: the controller closes a sample at the next frame swap.
+    Connections {
+        target: root.Window.window
+        function onFrameSwapped() {
+            DicomController.reportFrameSwapped()
+        }
+    }
+
+    // The shader path needs a hardware scene graph.
+    readonly property int graphicsApi: GraphicsInfo.api
+    function checkGraphicsApi() {
+        if (graphicsApi === GraphicsInfo.Software || graphicsApi === GraphicsInfo.OpenVG
+                || graphicsApi === GraphicsInfo.Null)
+            DicomController.reportGpuUnavailable("Qt Quick is not using a GPU scene graph (API " + graphicsApi + ")")
+    }
+    onGraphicsApiChanged: checkGraphicsApi()
+    Component.onCompleted: checkGraphicsApi()
+
     Item {
         id: canvas
 
@@ -66,13 +94,46 @@ Rectangle {
         height: root.height
         visible: DicomController.hasImage
 
-        Image {
+        // Flip mirrors the screen, the rotator turns the image inside it. A
+        // quarter turn swaps the rotator's size so the turned image still
+        // fits the viewport.
+        Item {
+            id: flipper
+
             anchors.fill: parent
-            source: DicomController.hasImage ? "image://dicom/" + DicomController.imageRevision : ""
-            fillMode: Image.PreserveAspectFit
-            smooth: root.smoothing
-            cache: false
-            asynchronous: true
+            transform: Scale {
+                origin.x: flipper.width / 2
+                origin.y: flipper.height / 2
+                xScale: DicomController.flipHorizontal ? -1 : 1
+                yScale: DicomController.flipVertical ? -1 : 1
+            }
+
+            Item {
+                readonly property bool sideways: DicomController.viewRotation % 2 === 1
+
+                width: sideways ? parent.height : parent.width
+                height: sideways ? parent.width : parent.height
+                x: (parent.width - width) / 2
+                y: (parent.height - height) / 2
+                rotation: DicomController.viewRotation * 90
+
+                // The content differs by render backend, the transform around it does not.
+                // Synchronous like GpuImage's: gpuActive flips right after a new
+                // revision, and an async load would leave a blank frame in between.
+                Image {
+                    anchors.fill: parent
+                    visible: !DicomController.gpuActive
+                    source: DicomController.hasImage ? "image://dicom/" + DicomController.imageRevision : ""
+                    fillMode: Image.PreserveAspectFit
+                    smooth: root.smoothing
+                    cache: false
+                }
+                GpuImage {
+                    anchors.fill: parent
+                    visible: DicomController.gpuActive
+                    smoothing: root.smoothing
+                }
+            }
         }
     }
 
@@ -187,35 +248,5 @@ Rectangle {
         text: qsTr("Frame %1/%2").arg(DicomController.frame + 1).arg(DicomController.frameCount)
         font.pixelSize: 12
         opacity: 0.8
-    }
-
-    // ---- Empty state and busy indicator -----------------------------------
-    ColumnLayout {
-        anchors.centerIn: parent
-        spacing: 16
-        visible: !DicomController.hasImage && !DicomController.busy
-        width: Math.min(parent.width - 32, 360)
-
-        Icon {
-            Layout.alignment: Qt.AlignHCenter
-            glyph: FontAwesome.folderOpen
-            color: Theme.overlayText
-            font.pixelSize: 32
-            opacity: 0.5
-        }
-        Label {
-            Layout.fillWidth: true
-            text: qsTr("Open a DICOM file (Ctrl+O) or drop it here")
-            color: Theme.overlayText
-            opacity: 0.7
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.Wrap
-        }
-    }
-
-    BusyIndicator {
-        anchors.centerIn: parent
-        running: DicomController.busy
-        Material.accent: Theme.accent
     }
 }

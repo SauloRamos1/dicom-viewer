@@ -39,6 +39,24 @@ Feature: Open a DICOM file
     When I open a valid RGB DICOM file
     Then the image is displayed in color
 
+  Scenario: GPU and CPU render the same image
+    Given a valid monochrome DICOM file is open with the CPU backend
+    When I switch to the GPU backend
+    Then the window state is unchanged
+    And the GPU shader math gives the same gray levels as the CPU image, within one level
+
+  Scenario: GPU unavailable falls back to CPU
+    Given the GPU backend is chosen and a monochrome file is shown by the GPU
+    When the scene reports that GPU rendering is unavailable
+    Then the CPU backend is used and the image is rendered on the CPU
+    And the errors list shows one info entry saying GPU rendering is unavailable
+    And choosing the GPU backend again is refused
+
+  Scenario: Rotate and flip updates orientation labels
+    Given a valid monochrome DICOM file with a known orientation is open
+    When I rotate the view 90 degrees clockwise or flip it
+    Then the orientation labels follow the transformation
+
   # Needs the language menu from step 4.
   @pending
   Scenario: Switch language

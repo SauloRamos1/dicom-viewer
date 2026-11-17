@@ -13,6 +13,9 @@ QString ErrorText::message(dv::ErrorCode code)
     case dv::ErrorCode::DecodeFailed: return tr("The image could not be decoded");
     case dv::ErrorCode::VolumeInconsistent: return tr("The slices do not form a consistent volume");
     case dv::ErrorCode::FrameOutOfRange: return tr("The frame index is out of range");
+    case dv::ErrorCode::GpuUnavailable: return tr("GPU rendering unavailable, using CPU");
+    case dv::ErrorCode::NoDicomFiles: return tr("No DICOM files were found in the folder");
+    case dv::ErrorCode::SingleSliceSeries: return tr("The series has a single slice, shown as a plain image");
     }
     return tr("Unknown error");
 }

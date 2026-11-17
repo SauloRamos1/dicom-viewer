@@ -13,8 +13,11 @@ add_executable(dicomcore_tests
     unit/test_error.cpp
     unit/test_metadata.cpp
     unit/test_orientation.cpp
+    unit/test_gputexture.cpp
+    unit/test_heightmap.cpp
     unit/test_pixeldata.cpp
     unit/test_volume.cpp
+    unit/test_volume_gpu.cpp
     unit/test_windowing.cpp
     bdd/test_open_file.cpp
 )
@@ -28,16 +31,21 @@ catch_discover_tests(dicomcore_tests)
 
 # Qt glue (controller, models, image provider): compiles the same sources as the
 # app, without the QML module.
-find_package(Qt6 6.12 REQUIRED COMPONENTS Quick Concurrent)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Quick Quick3D Concurrent)
 
 add_executable(dicomapp_tests
     app/main.cpp
+    app/test_app_settings.cpp
     app/test_controller.cpp
+    app/test_controller_gpu.cpp
+    app/test_controller_series.cpp
     app/test_error_model.cpp
     app/test_error_text.cpp
     app/test_image_provider.cpp
     app/test_metadata_model.cpp
+    app/test_quick3d_data.cpp
     bdd/test_open_file_app.cpp
+    bdd/test_view_3d.cpp
     ${DICOMAPP_LOGIC_SOURCES}
 )
 set_target_properties(dicomapp_tests PROPERTIES AUTOMOC ON)
@@ -47,6 +55,7 @@ target_link_libraries(dicomapp_tests
         dicomtest_support
         Catch2::Catch2
         Qt6::Quick
+        Qt6::Quick3D
         Qt6::Concurrent
         dicomviewer_warnings
 )

@@ -5,8 +5,8 @@
 
 TEST_CASE("Every error code has a translated message", "[app][errors]")
 {
-    // Keep in step with dv::ErrorCode: FrameOutOfRange is its last enumerator.
-    for (int i = 0; i <= static_cast<int>(dv::ErrorCode::FrameOutOfRange); ++i) {
+    // Keep in step with dv::ErrorCode: SingleSliceSeries is its last enumerator.
+    for (int i = 0; i <= static_cast<int>(dv::ErrorCode::SingleSliceSeries); ++i) {
         const auto code = static_cast<dv::ErrorCode>(i);
         INFO("code " << dv::toString(code));
         CHECK_FALSE(ErrorText::message(code).isEmpty());

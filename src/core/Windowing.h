@@ -36,6 +36,14 @@ inline constexpr Voi kCtLung{-600, 1500};
 inline constexpr Voi kCtBone{400, 1800};
 inline constexpr Voi kCtAbdomen{40, 400};
 
+// Smallest and largest modality value the stored bits can hold (stored range
+// through the rescale slope and intercept). Bounds for window controls.
+struct ValueRange {
+    double min{};
+    double max{};
+};
+[[nodiscard]] ValueRange modalityRange(const ImageInfo& info) noexcept;
+
 // DICOM linear VOI function (PS3.3 C.11.2.1.2.1) mapped to 0..255:
 //   x <= c - 0.5 - (w-1)/2  ->  0
 //   x >  c - 0.5 + (w-1)/2  ->  255

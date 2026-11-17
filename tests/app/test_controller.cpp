@@ -383,3 +383,76 @@ TEST_CASE("The metadata filter works on the controller's model", "[app][controll
     controller.reset();
     CHECK(controller.metadata()->rowCount() == 0);
 }
+
+TEST_CASE("The value range bounds the window controls", "[app][controller]")
+{
+    DicomController controller;
+    CHECK(controller.valueMin() == 0);
+    CHECK(controller.valueMax() == 0);
+
+    const auto file = dv::DicomFile::load(dataFile("CT_small.dcm"));
+    REQUIRE(file.has_value());
+    const auto range = dv::modalityRange(file->info());
+    openAndWait(controller, dataFile("CT_small.dcm"));
+    CHECK(controller.valueMin() == range.min);
+    CHECK(controller.valueMax() == range.max);
+}
+
+TEST_CASE("Rotating and flipping moves the orientation labels", "[app][controller]")
+{
+    DicomController controller;
+    openAndWait(controller, dataFile("CT_small.dcm"));
+    const auto file = dv::DicomFile::load(dataFile("CT_small.dcm"));
+    REQUIRE(file.has_value());
+    const auto labels = dv::orientationLabels(file->info());
+    REQUIRE(labels.has_value());
+    int notifications = 0;
+    QObject::connect(&controller, &DicomController::orientationChanged, [&] { ++notifications; });
+
+    auto expect = [&](dv::ViewTransform transform) {
+        const auto moved = dv::transformLabels(*labels, transform);
+        CHECK(controller.orientationLeft() == QString::fromStdString(moved.left));
+        CHECK(controller.orientationRight() == QString::fromStdString(moved.right));
+        CHECK(controller.orientationTop() == QString::fromStdString(moved.top));
+        CHECK(controller.orientationBottom() == QString::fromStdString(moved.bottom));
+    };
+
+    expect({});
+    controller.rotateRight();
+    CHECK(controller.viewRotation() == 1);
+    expect({1, false, false});
+    controller.rotateLeft();
+    controller.rotateLeft();
+    CHECK(controller.viewRotation() == 3);
+    expect({3, false, false});
+    controller.setFlipHorizontal(true);
+    controller.setFlipVertical(true);
+    expect({3, true, true});
+    CHECK(notifications == 5);
+
+    controller.resetTransform();
+    CHECK(controller.viewRotation() == 0);
+    CHECK_FALSE(controller.flipHorizontal());
+    CHECK_FALSE(controller.flipVertical());
+    expect({});
+}
+
+TEST_CASE("The view transform resets on load and on New and needs an image", "[app][controller]")
+{
+    DicomController controller;
+    controller.rotateRight();
+    controller.setFlipHorizontal(true);
+    CHECK(controller.viewRotation() == 0);
+    CHECK_FALSE(controller.flipHorizontal());
+
+    openAndWait(controller, dataFile("CT_small.dcm"));
+    controller.rotateRight();
+    controller.setFlipVertical(true);
+    openAndWait(controller, dataFile("MR_small.dcm"));
+    CHECK(controller.viewRotation() == 0);
+    CHECK_FALSE(controller.flipVertical());
+
+    controller.rotateRight();
+    controller.reset();
+    CHECK(controller.viewRotation() == 0);
+}

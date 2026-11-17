@@ -40,3 +40,14 @@ public:
 private:
     std::shared_ptr<FrameStore> m_store;
 };
+
+// Serves a colormap as image://dicomlut/<colormap index>: a 256x1 RGBA look-up
+// table (indexed by gray level) that the GPU shader samples. Unknown ids give
+// the gray table. The image is opaque (alpha 255) so Qt Quick uploads it as is.
+class ColormapImageProvider : public QQuickImageProvider
+{
+public:
+    ColormapImageProvider();
+
+    QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;
+};

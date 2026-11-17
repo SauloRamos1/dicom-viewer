@@ -308,3 +308,61 @@ TEST_CASE("renderFrame benchmarks", "[!benchmark]")
     BENCHMARK("renderFrame CT_small 128x128") { return dv::renderFrame(ct, 0, {.voi = dv::kCtBone}); };
     BENCHMARK("renderFrame JPEG-lossy 1024x256") { return dv::renderFrame(jpeg, 0, {.voi = {2000, 4000}}); };
 }
+
+TEST_CASE("value range follows the stored bits and the rescale", "[windowing][range]")
+{
+    dv::ImageInfo info;
+    info.bitsStored = 12;
+    info.pixelRepresentation = 0;
+    info.rescaleSlope = 1;
+    info.rescaleIntercept = -1024;
+    auto range = dv::modalityRange(info);
+    CHECK(range.min == -1024);
+    CHECK(range.max == 3071);
+
+    info.bitsStored = 16;
+    info.pixelRepresentation = 1;
+    info.rescaleIntercept = 0;
+    range = dv::modalityRange(info);
+    CHECK(range.min == -32768);
+    CHECK(range.max == 32767);
+
+    info.bitsStored = 8;
+    info.pixelRepresentation = 0;
+    info.rescaleSlope = 2;
+    info.rescaleIntercept = 10;
+    range = dv::modalityRange(info);
+    CHECK(range.min == 10);
+    CHECK(range.max == 520);
+}
+
+TEST_CASE("value range stays ordered for a negative slope and survives odd bits", "[windowing][range]")
+{
+    dv::ImageInfo info;
+    info.bitsStored = 8;
+    info.rescaleSlope = -1;
+    info.rescaleIntercept = 255;
+    auto range = dv::modalityRange(info);
+    CHECK(range.min == 0);
+    CHECK(range.max == 255);
+
+    info.bitsStored = 0; // missing: fall back to the allocated bits
+    info.bitsAllocated = 16;
+    info.rescaleSlope = 1;
+    info.rescaleIntercept = 0;
+    range = dv::modalityRange(info);
+    CHECK(range.min == 0);
+    CHECK(range.max == 65535);
+}
+
+TEST_CASE("value range of a real file contains its window", "[windowing][range]")
+{
+    const auto file = loadOrFail(dataFile("CT_small.dcm"));
+    const auto range = dv::modalityRange(file.info());
+    REQUIRE(range.min < range.max);
+    const auto values = file.rawModalityValues(0);
+    REQUIRE(values.has_value());
+    const auto [lo, hi] = std::ranges::minmax(*values);
+    CHECK(range.min <= lo);
+    CHECK(range.max >= hi);
+}

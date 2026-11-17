@@ -40,6 +40,8 @@ public:
     Q_INVOKABLE void setPreviewSamples();
     Q_INVOKABLE void clear();
     void replaceWith(const std::vector<dv::DicomError> &errors);
+    // Adds an entry at the end; the sample errors, if shown, make room for it.
+    void append(const dv::DicomError &error);
 
 signals:
     void countChanged();
@@ -57,6 +59,7 @@ private:
         bool preview{false};
     };
 
+    static Entry entryFor(const dv::DicomError &error, const QDateTime &now);
     void setEntries(std::vector<Entry> entries);
 
     std::vector<Entry> m_entries;

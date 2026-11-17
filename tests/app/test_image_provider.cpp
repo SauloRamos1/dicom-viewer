@@ -69,3 +69,29 @@ TEST_CASE("DicomImageProvider serves the latest frame", "[app][provider]")
         CHECK_FALSE(provider.requestImage(QStringLiteral("0"), nullptr, {}).isNull());
     }
 }
+
+TEST_CASE("ColormapImageProvider serves each colormap as a 256x1 look-up table", "[app][provider][gpu]")
+{
+    ColormapImageProvider provider;
+    for (int index = 0; index < 4; ++index) {
+        QSize size;
+        const QImage image = provider.requestImage(QString::number(index), &size, {});
+        CAPTURE(index);
+        REQUIRE(image.size() == QSize(256, 1));
+        CHECK(size == QSize(256, 1));
+        CHECK(image.format() == QImage::Format_RGBA8888);
+        const auto &lut = dv::colormapLut(static_cast<dv::Colormap>(index));
+        for (int level : {0, 1, 100, 200, 255}) {
+            const QColor pixel = image.pixelColor(level, 0);
+            CHECK(pixel.red() == lut[static_cast<size_t>(level)][0]);
+            CHECK(pixel.green() == lut[static_cast<size_t>(level)][1]);
+            CHECK(pixel.blue() == lut[static_cast<size_t>(level)][2]);
+            CHECK(pixel.alpha() == 255);
+        }
+    }
+
+    // An unknown id falls back to gray.
+    QSize size;
+    const QImage fallback = provider.requestImage(QStringLiteral("nope"), &size, {});
+    CHECK(fallback.pixelColor(77, 0).red() == 77);
+}

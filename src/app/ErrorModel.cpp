@@ -66,11 +66,28 @@ void ErrorModel::replaceWith(const std::vector<dv::DicomError> &errors)
     std::vector<Entry> entries;
     entries.reserve(errors.size());
     const QDateTime now = QDateTime::currentDateTime();
-    for (const dv::DicomError &error : errors) {
-        entries.push_back({error.code, error.severity, QString::fromStdString(error.detail),
-                           error.tag ? QString::fromStdString(*error.tag) : QString(), now, false});
-    }
+    for (const dv::DicomError &error : errors)
+        entries.push_back(entryFor(error, now));
     setEntries(std::move(entries));
+}
+
+void ErrorModel::append(const dv::DicomError &error)
+{
+    if (!m_entries.empty() && m_entries.front().preview) {
+        replaceWith({error});
+        return;
+    }
+    const int row = rowCount();
+    beginInsertRows({}, row, row);
+    m_entries.push_back(entryFor(error, QDateTime::currentDateTime()));
+    endInsertRows();
+    emit countChanged();
+}
+
+ErrorModel::Entry ErrorModel::entryFor(const dv::DicomError &error, const QDateTime &now)
+{
+    return {error.code, error.severity, QString::fromStdString(error.detail),
+            error.tag ? QString::fromStdString(*error.tag) : QString(), now, false};
 }
 
 bool ErrorModel::eventFilter(QObject *watched, QEvent *event)

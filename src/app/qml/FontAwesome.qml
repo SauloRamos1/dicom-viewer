@@ -17,6 +17,13 @@ QtObject {
     readonly property string language: ""
     readonly property string moon: ""
     readonly property string sun: ""
+    readonly property string xmark: ""
+    readonly property string rotateLeft: ""
+    readonly property string rotateRight: ""
+    readonly property string leftRight: ""
+    readonly property string upDown: ""
+    readonly property string expand: ""
+    readonly property string chevronDown: ""
 
     property FontLoader loader: FontLoader {
         source: "fonts/fa-solid-900.otf"

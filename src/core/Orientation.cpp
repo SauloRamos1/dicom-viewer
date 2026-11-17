@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <numeric>
+#include <utility>
 
 namespace dv {
 
@@ -54,6 +55,19 @@ std::optional<OrientationLabels> orientationLabels(const std::array<double, 6>& 
                              .right = letters(*row),
                              .top = letters(negated(*column)),
                              .bottom = letters(*column)};
+}
+
+OrientationLabels transformLabels(const OrientationLabels& labels, const ViewTransform& transform)
+{
+    OrientationLabels out = labels;
+    // One clockwise turn: top -> right -> bottom -> left -> top.
+    for (int turns = ((transform.quarterTurns % 4) + 4) % 4; turns > 0; --turns)
+        out = {.left = out.bottom, .right = out.top, .top = out.left, .bottom = out.right};
+    if (transform.flipHorizontal)
+        std::swap(out.left, out.right);
+    if (transform.flipVertical)
+        std::swap(out.top, out.bottom);
+    return out;
 }
 
 std::optional<OrientationLabels> orientationLabels(const ImageInfo& info)

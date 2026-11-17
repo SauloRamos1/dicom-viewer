@@ -21,9 +21,14 @@ int main(int argc, char *argv[])
         &app,
         []() { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);
-    // The controller is the QML singleton; its latest frame is served as image://dicom/<revision>.
+    // The controller is the QML singleton; its latest frame is served as
+    // image://dicom/<revision> (CPU path) and its packed raw frame as
+    // image://dicomraw/<revision> (GPU path), next to the colormap tables of
+    // image://dicomlut/<colormap>.
     auto *controller = engine.singletonInstance<DicomController *>("DicomViewer", "DicomController");
     engine.addImageProvider(QStringLiteral("dicom"), new DicomImageProvider(controller->frameStore()));
+    engine.addImageProvider(QStringLiteral("dicomraw"), new DicomImageProvider(controller->gpuFrameStore()));
+    engine.addImageProvider(QStringLiteral("dicomlut"), new ColormapImageProvider);
     engine.loadFromModule("DicomViewer", "Main");
 
     return QGuiApplication::exec();

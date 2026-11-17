@@ -19,8 +19,11 @@ Window {
 
     width: 480
     height: 300
-    x: Screen.virtualX + (Screen.width - width) / 2
-    y: Screen.virtualY + (Screen.height - height) / 2
+    // Centred on the primary screen; the window's own Screen would loop, as moving
+    // the window can change which screen it is on.
+    readonly property var primaryScreen: Application.screens[0]
+    x: primaryScreen ? primaryScreen.virtualX + (primaryScreen.width - width) / 2 : 0
+    y: primaryScreen ? primaryScreen.virtualY + (primaryScreen.height - height) / 2 : 0
     flags: Qt.SplashScreen | Qt.FramelessWindowHint
     color: "transparent"
 

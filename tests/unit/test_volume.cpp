@@ -1,6 +1,7 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <atomic>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -130,10 +131,87 @@ TEST_CASE("fromSeries rejects slices of different sizes", "[volume][error]")
 
 TEST_CASE("fromSeries reports why nothing could be loaded", "[volume][error]")
 {
-    CHECK(dv::Volume::fromSeries({}).error().code == ErrorCode::VolumeInconsistent);
+    CHECK(dv::Volume::fromSeries({}).error().code == ErrorCode::NoDicomFiles);
 
     const std::vector<std::filesystem::path> missing{dataFile("missing.dcm")};
     CHECK(dv::Volume::fromSeries(missing).error().code == ErrorCode::FileNotFound);
+
+    const TempDir dir;
+    writeBytes(dir / "notes.txt", {});
+    writeBytes(dir / "picture.png", {});
+    const std::vector<std::filesystem::path> notDicom{dir / "notes.txt", dir / "picture.png"};
+    CHECK(dv::Volume::fromSeries(notDicom).error().code == ErrorCode::NoDicomFiles);
+}
+
+TEST_CASE("fromSeries picks the most common series, not the first file's", "[volume]")
+{
+    const TempDir dir;
+    const std::vector<std::filesystem::path> paths{
+        writeSlice(dir, "scout.dcm", {.z = 0.0, .seriesUid = "9.9.9", .marker = 99}),
+        writeSlice(dir, "a.dcm", {.z = 0.0, .marker = 1}),
+        writeSlice(dir, "b.dcm", {.z = 5.0, .marker = 2}),
+        writeSlice(dir, "c.dcm", {.z = 10.0, .marker = 3}),
+    };
+
+    const auto volume = dv::Volume::fromSeries(paths);
+    REQUIRE(volume.has_value());
+    CHECK(volume->depth == 3);
+    CHECK(firstVoxel(*volume, 0) == 1.0F - 1024.0F);
+}
+
+TEST_CASE("fromSeries falls back to the instance number when only some slices have a position", "[volume]")
+{
+    const TempDir dir;
+    const std::vector<std::filesystem::path> paths{
+        writeSlice(dir, "a.dcm", {.z = 50.0, .instance = 2, .marker = 20}),
+        writeSlice(dir, "b.dcm", {.instance = 1, .marker = 10}),
+    };
+
+    const auto volume = dv::Volume::fromSeries(paths);
+    REQUIRE(volume.has_value());
+    CHECK(firstVoxel(*volume, 0) == 10.0F - 1024.0F);
+    CHECK(firstVoxel(*volume, 1) == 20.0F - 1024.0F);
+}
+
+TEST_CASE("loadSeries returns the slice files in volume order", "[volume]")
+{
+    const TempDir dir;
+    const std::vector<std::filesystem::path> paths{
+        writeSlice(dir, "a.dcm", {.z = 10.0, .marker = 10}),
+        writeSlice(dir, "b.dcm", {.z = 0.0, .marker = 0}),
+        writeSlice(dir, "c.dcm", {.z = 5.0, .marker = 5}),
+    };
+
+    const auto series = dv::loadSeries(paths);
+    REQUIRE(series.has_value());
+    REQUIRE(series->slices.size() == 3);
+    CHECK(series->slices[0].path().filename() == "b.dcm");
+    CHECK(series->slices[1].path().filename() == "c.dcm");
+    CHECK(series->slices[2].path().filename() == "a.dcm");
+    CHECK(series->volume.depth == 3);
+}
+
+TEST_CASE("A single-slice series loads as a one-slice volume", "[volume]")
+{
+    const TempDir dir;
+    const std::vector<std::filesystem::path> paths{writeSlice(dir, "a.dcm", {.z = 0.0, .marker = 7})};
+
+    const auto series = dv::loadSeries(paths);
+    REQUIRE(series.has_value());
+    CHECK(series->slices.size() == 1);
+    CHECK(series->volume.depth == 1);
+    CHECK(series->volume.spacing[2] == Catch::Approx(5.0)); // slice thickness
+}
+
+TEST_CASE("loadSeries stops when cancelled", "[volume][error]")
+{
+    const TempDir dir;
+    const std::vector<std::filesystem::path> paths{writeSlice(dir, "a.dcm", {.z = 0.0}),
+                                                   writeSlice(dir, "b.dcm", {.z = 5.0})};
+    const std::atomic<bool> cancelled{true};
+    const auto series = dv::loadSeries(paths, &cancelled);
+    REQUIRE_FALSE(series.has_value());
+    CHECK(series.error().detail == "cancelled");
 }
 
 TEST_CASE("fromSeries rejects multi-frame and color files", "[volume][error]")

@@ -1,6 +1,7 @@
 #include "Volume.h"
 
 #include <algorithm>
+#include <map>
 #include <optional>
 #include <string>
 
@@ -38,6 +39,7 @@ std::array<double, 3> spacingOf(const ImageInfo& info, double z)
 
 struct Slice {
     std::vector<float> values;
+    DicomFile file;
     std::optional<Vec3> position;
     std::optional<int> instance;
 };
@@ -90,46 +92,64 @@ std::expected<Volume, DicomError> Volume::fromMultiFrame(const DicomFile& file)
     });
 }
 
-std::expected<Volume, DicomError> Volume::fromSeries(std::span<const std::filesystem::path> paths)
+std::expected<Series, DicomError> loadSeries(std::span<const std::filesystem::path> paths, const std::atomic<bool>* cancel)
 {
-    return guarded<Volume>([&]() -> std::expected<Volume, DicomError> {
-        std::optional<DicomError> firstError;
-        std::optional<ImageInfo> reference; // first valid slice defines series, size and spacing
-        std::vector<Slice> slices;
+    return guarded<Series>([&]() -> std::expected<Series, DicomError> {
+        const auto cancelled = [&] { return cancel != nullptr && cancel->load(); };
+        const auto cancelledError = [] { return std::unexpected(makeError(ErrorCode::DecodeFailed, "cancelled")); };
 
+        std::optional<DicomError> firstError;
+        std::vector<DicomFile> files;
         for (const auto& path : paths) {
+            if (cancelled())
+                return cancelledError();
             auto file = DicomFile::load(path);
-            if (!file) {
-                if (!firstError)
-                    firstError = std::move(file.error());
+            if (file)
+                files.push_back(*std::move(file));
+            else if (!firstError)
+                firstError = std::move(file.error());
+        }
+
+        if (files.empty()) {
+            // A folder of other file types is "no DICOM files", not a NotDicom error of its first file.
+            if (firstError && firstError->code != ErrorCode::NotDicom)
+                return std::unexpected(std::move(*firstError));
+            return std::unexpected(makeError(ErrorCode::NoDicomFiles));
+        }
+
+        // The series with the most images; the first one met wins a tie.
+        std::map<std::string, int> counts;
+        std::string seriesUid = files.front().info().seriesInstanceUid;
+        for (const DicomFile& file : files)
+            ++counts[file.info().seriesInstanceUid];
+        for (const DicomFile& file : files) {
+            if (counts[file.info().seriesInstanceUid] > counts[seriesUid])
+                seriesUid = file.info().seriesInstanceUid;
+        }
+
+        std::optional<ImageInfo> reference; // first slice of the series: size and spacing
+        std::vector<Slice> slices;
+        for (const DicomFile& file : files) {
+            if (cancelled())
+                return cancelledError();
+            const ImageInfo& info = file.info();
+            if (info.seriesInstanceUid != seriesUid)
                 continue;
-            }
-            const ImageInfo& info = file->info();
-            if (reference && info.seriesInstanceUid != reference->seriesInstanceUid)
-                continue;
-            if (info.frameCount != 1) {
-                return std::unexpected(makeError(ErrorCode::VolumeInconsistent,
-                                                 path.filename().string() + " is a multi-frame file"));
-            }
+            const std::string name = file.path().filename().string();
+            if (info.frameCount != 1)
+                return std::unexpected(makeError(ErrorCode::VolumeInconsistent, name + " is a multi-frame file"));
             if (reference && (info.rows != reference->rows || info.columns != reference->columns)) {
                 return std::unexpected(makeError(
                     ErrorCode::VolumeInconsistent,
-                    path.filename().string() + " is " + std::to_string(info.columns) + "x"
-                        + std::to_string(info.rows) + ", expected " + std::to_string(reference->columns) + "x"
-                        + std::to_string(reference->rows)));
+                    name + " is " + std::to_string(info.columns) + "x" + std::to_string(info.rows) + ", expected "
+                        + std::to_string(reference->columns) + "x" + std::to_string(reference->rows)));
             }
-            auto values = file->rawModalityValues(0);
+            auto values = file.rawModalityValues(0);
             if (!values)
                 return std::unexpected(std::move(values.error()));
             if (!reference)
                 reference = info;
-            slices.push_back({.values = std::move(*values), .position = info.imagePosition, .instance = info.instanceNumber});
-        }
-
-        if (slices.empty()) {
-            if (firstError)
-                return std::unexpected(std::move(*firstError));
-            return std::unexpected(makeError(ErrorCode::VolumeInconsistent, "no slices"));
+            slices.push_back({.values = std::move(*values), .file = file, .position = info.imagePosition, .instance = info.instanceNumber});
         }
 
         const auto projected = sortSlices(slices, sliceNormalOf(*reference));
@@ -137,15 +157,25 @@ std::expected<Volume, DicomError> Volume::fromSeries(std::span<const std::filesy
             ? (projected->back() - projected->front()) / static_cast<double>(projected->size() - 1)
             : nominalSliceSpacing(*reference);
 
-        Volume volume{.width = reference->columns,
-                      .height = reference->rows,
-                      .depth = static_cast<int>(slices.size()),
-                      .spacing = spacingOf(*reference, sliceSpacing)};
-        volume.voxels.reserve(slices.size() * slices.front().values.size());
-        for (const Slice& slice : slices)
-            volume.voxels.insert(volume.voxels.end(), slice.values.begin(), slice.values.end());
-        return volume;
+        Series series{.volume = {.width = reference->columns,
+                                 .height = reference->rows,
+                                 .depth = static_cast<int>(slices.size()),
+                                 .spacing = spacingOf(*reference, sliceSpacing)}};
+        series.volume.voxels.reserve(slices.size() * slices.front().values.size());
+        for (Slice& slice : slices) {
+            series.volume.voxels.insert(series.volume.voxels.end(), slice.values.begin(), slice.values.end());
+            series.slices.push_back(std::move(slice.file));
+        }
+        return series;
     });
+}
+
+std::expected<Volume, DicomError> Volume::fromSeries(std::span<const std::filesystem::path> paths)
+{
+    auto series = loadSeries(paths);
+    if (!series)
+        return std::unexpected(std::move(series.error()));
+    return std::move(series->volume);
 }
 
 } // namespace dv

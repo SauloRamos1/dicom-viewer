@@ -6,7 +6,10 @@ add_library(dicomcore STATIC
     DicomFile.cpp
     DicomFile.h
     DicomFileState.h
+    GpuTexture.h
     Guarded.h
+    Heightmap.cpp
+    Heightmap.h
     Metadata.cpp
     Metadata.h
     Orientation.cpp
@@ -15,6 +18,8 @@ add_library(dicomcore STATIC
     Voi.h
     Volume.cpp
     Volume.h
+    VolumeGpu.cpp
+    VolumeGpu.h
     Windowing.cpp
     Windowing.h
 )
