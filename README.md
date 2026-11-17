@@ -33,8 +33,8 @@ example errors, opening a DICOM file, window/level, colormaps and the 3D heightm
 | Item | State |
 |---|---|
 | macOS (Apple Silicon, Apple clang 21, Xcode SDK, Qt 6.12.0) | Verified: clean Release build from the steps below, all 256 tests pass in Debug, the app starts on `tests/data/CT_small.dcm` |
-| Windows (MSVC 2022 x64) and Linux (GCC 13) | Configured in CI and described below, **not yet built or run** by the author |
-| GitHub Actions run, release packages | The workflow is written; **no run has been checked and no release has been published yet** |
+| Windows (MSVC 2022 x64) and Linux (Ubuntu 24.04, GCC 13) | Built and tested by CI: 256 tests pass and a package is produced on each. **Not run on a desktop** by the author, and the steps below follow CI |
+| GitHub Actions, release packages | Every push builds, tests and packages on macOS, Windows and Linux, and uploads the packages as workflow artifacts. The `release` job (GitHub Release) only runs on a `v*` tag, so **no release has been published yet** |
 | Code signing / notarization | None. Packages are unsigned (macOS ad-hoc only) |
 
 ## Features
@@ -99,7 +99,7 @@ build/release/src/app/appDicomViewer.app/Contents/MacOS/appDicomViewer tests/dat
 | Qt | **6.12.0** (official installer or `aqtinstall`). Modules linked by CMake: Quick, QuickControls2 (Material style), Quick3D, Concurrent, Svg. Build tools: ShaderTools (`qsb`) and LinguistTools. `QtQuick.Dialogs` (QuickDialogs2) is loaded at run time. In the installer also select **Qt Quick 3D**, **Qt Shader Tools** and Qt Quick Timeline if they are not already ticked (CI installs the latter because Quick 3D recommends it; the app does not link it) |
 | CMake | 3.24 or newer |
 | Generator | Ninja (the presets use it). The Qt installer ships it in `Tools/Ninja` |
-| C++ compiler | C++23 with `std::expected`. Used and verified: Apple clang 21 (Xcode). Used by CI, not verified locally: GCC 13 (Linux) and MSVC 2022 x64 (Windows) |
+| C++ compiler | C++23 with `std::expected`. Used locally: Apple clang 21 (Xcode). Built and tested by CI: GCC 13 (Linux) and MSVC 2022 x64 (Windows) |
 | Network | The first configure downloads DCMTK 3.7.1 and Catch2 v3.16.1 with `FetchContent` (pinned tags) |
 | macOS | Deployment target is read from Qt (14.4 for Qt 6.12). Xcode, not only the Command Line Tools |
 | Linux | Ubuntu 24.04 or newer (glibc 2.39 baseline). CI installs: `gcc-13 g++-13 ninja-build libgl1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1` |
@@ -163,7 +163,7 @@ cmake --preset release -DCMAKE_OSX_SYSROOT="$(xcrun --sdk macosx --show-sdk-path
 cmake --preset local && cmake --build --preset local && ctest --preset local
 ```
 
-### Linux (not yet verified by the author)
+### Linux (built and tested by CI, not run on a desktop by the author)
 
 ```sh
 sudo apt-get install -y gcc-13 g++-13 ninja-build libgl1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0   # plus the other libxcb-* packages listed above
@@ -175,7 +175,7 @@ build/release/src/app/appDicomViewer tests/data/CT_small.dcm
 Over SSH or in CI, run with `QT_QPA_PLATFORM=offscreen` (the 3D view needs a real GPU context and shows
 nothing offscreen).
 
-### Windows (not yet verified by the author)
+### Windows (built and tested by CI, not run on a desktop by the author)
 
 In an "x64 Native Tools Command Prompt for VS 2022" (Ninja comes with Visual Studio's CMake, or from Qt's `Tools`):
 
