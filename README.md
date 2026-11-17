@@ -27,7 +27,7 @@ Brazilian Portuguese UI, a GPU rendering path, and a 3D heightmap/volume view.
 
 | Item | State |
 |---|---|
-| macOS (Apple Silicon, Apple clang 21, Xcode SDK, Qt 6.12.0) | Verified: clean Release build from the steps below, all 190 tests pass, the app starts on `tests/data/CT_small.dcm` |
+| macOS (Apple Silicon, Apple clang 21, Xcode SDK, Qt 6.12.0) | Verified: clean Release build from the steps below, all 190 tests passed at that check (the suite now has 252, run in Debug), the app starts on `tests/data/CT_small.dcm` |
 | Windows (MSVC 2022 x64) and Linux (GCC 13) | Configured in CI and described below, **not yet built or run** by the author |
 | GitHub Actions run, release packages | The workflow is written; **no run has been checked and no release has been published yet** |
 | Code signing / notarization | None. Packages are unsigned (macOS ad-hoc only) |
@@ -116,7 +116,7 @@ export CMAKE_PREFIX_PATH="$HOME/Qt/6.12.0/macos"      # Qt kit from the official
 export PATH="$HOME/Qt/Tools/Ninja:$PATH"              # or: brew install ninja
 cmake --preset release
 cmake --build --preset release
-ctest --preset release                                 # 190 tests, a few seconds
+ctest --preset release                                 # 252 tests, a few seconds
 build/release/src/app/appDicomViewer.app/Contents/MacOS/appDicomViewer tests/data/CT_small.dcm
 ```
 
@@ -222,6 +222,7 @@ Full table with sources: [docs/SOUP.md](docs/SOUP.md).
 | Mouse wheel / trackpad scroll | Zoom around the cursor |
 | Left-drag | Pan |
 | Right-drag | Window width (horizontal) and level (vertical), grayscale only |
+| Hover | Readout at the bottom-right: pixel `x, y` and its value (HU for CT, plain modality value otherwise, `R G B` for colour); hidden outside the image and while dragging |
 | Double-click | Fit to window |
 | `R` / `Shift+R` | Rotate 90 degrees right / left (orientation letters follow) |
 | `H` / `V` | Flip horizontally / vertically |
@@ -266,7 +267,11 @@ re-implemented:
    function; the 8-bit result drives the display. A file without window tags falls back to Min-Max.
 4. **Photometric interpretation**: MONOCHROME1 is shown inverted relative to MONOCHROME2 (minimum = white);
    RGB, YBR_FULL and YBR_FULL_422 are converted to RGB by DCMTK; the user "Invert" toggle is applied on top.
-5. **Geometry**: the image is drawn at columns x rows with aspect fit. **Orientation letters**
+5. **Geometry**: the image is drawn at its physical proportions: columns x rows, stretched by the pixel
+   aspect (column spacing / row spacing from Pixel Spacing, else Imager Pixel Spacing, else Pixel Aspect
+   Ratio, else 1), then fitted; zoom stays relative to the fit. The status bar shows the spacing in mm. The
+   cursor readout inverts fit, zoom, pan, rotation, flips and pixel aspect (`src/core/ViewGeometry.cpp`).
+   **Orientation letters**
    (`src/core/Orientation.cpp`) come from Image Orientation Patient (0020,0037): the row vector gives the
    right edge, the column vector the bottom edge; letters are R/L, A/P, H/F, with secondary letters above 0.2
    for oblique planes. Rotate and flip update them.
@@ -278,7 +283,7 @@ colormap, so dragging the window is cheap. The shader follows DCMTK's truncation
 scene graph, grayscale output differs from the CPU path by at most 1 gray level (where float32 versus double
 lands on an integer boundary), a few levels where a 1-level change crosses a steep colormap entry, and a few
 isolated texel rows differ with nearest-neighbour minification
-([docs/PLAN.md](docs/PLAN.md), section 3). Colour, 32-bit and Modality-LUT-sequence images always use the CPU
+([docs/PLAN.md](docs/PLAN.md), section 3). Colour, 32-bit, Modality-LUT-sequence and non-linear-VOI images, and series with mixed rescale, always use the CPU
 path and the Render section says so. If the GPU path cannot run (software or null renderer, shader failure)
 the controller falls back to CPU and adds an Info entry to the Errors panel. The choice is remembered. Render
 times are shown in the Options pane; the GPU timing includes waiting for the next frame, so compare it with
@@ -296,10 +301,11 @@ code, a severity, a short message, a technical detail (the DCMTK `OFCondition` t
 | `NotDicom` | DCMTK cannot parse the file (text file, random bytes, truncated file) |
 | `NoPixelData` | Valid DICOM without Pixel Data (7FE0,0010): the metadata is shown, no image |
 | `UnsupportedTransferSyntax` | JPEG 2000, Deflated, or another syntax this build cannot decode |
-| `UnsupportedPhotometric`, `CorruptPixelData`, `DecodeFailed` | The image cannot be built or decoded |
-| `VolumeInconsistent`, `FrameOutOfRange` | Series slices differ in size or geometry; bad frame index |
+| `UnsupportedPhotometric`, `UnsupportedPixelFormat`, `CorruptPixelData`, `DecodeFailed` | The image cannot be built or decoded (`UnsupportedPixelFormat`: BitsAllocated other than 8, 16 or 32, e.g. 1-bit) |
+| `VolumeInconsistent`, `VolumeTooLarge`, `FrameOutOfRange` | Series slices differ in size, orientation, pixel spacing or are not evenly spaced; the volume would need more than 2 GiB; bad frame index |
 | `NoDicomFiles` | A series folder holds nothing that opens as a DICOM image |
 | `GpuUnavailable`, `SingleSliceSeries` | Info notices, not failures |
+| `SkippedFiles` | Warning: damaged images of a series folder were left out (the first few are named) |
 
 In the UI each code maps to a translated message plus the technical detail, shown in the **Errors panel**
 (right side, `Ctrl+E`, with a count badge). Before any file is opened the panel lists sample errors marked
@@ -321,13 +327,17 @@ obsolete.
 
 Other known limitations:
 
-- Colour images, 32-bit images and Modality LUT sequences are rendered on the CPU path only.
-- Pixel Spacing is used for the 3D voxel aspect but **not** to correct non-square pixels in the 2D view;
-  the 2D image is drawn at columns x rows.
-- No UTF-8 character-set conversion: text in non-ASCII Specific Character Sets may display wrongly in the
-  metadata panel.
-- There is no pixel-value or HU readout under the cursor.
-- Series loading keeps single-frame monochrome slices of the most common Series Instance UID. A volume is
+- Colour images, 32-bit images, Modality LUT sequences, the SIGMOID and LINEAR_EXACT VOI functions and series
+  whose slices differ in rescale, signedness or polarity are rendered on the CPU path only.
+- Non-square pixels are corrected in the 2D view only; the 3D heightmap is built on the image grid.
+- Text is converted to UTF-8 only for ISO_IR 100 (Latin-1), ISO_IR 192 (UTF-8) and ASCII. Other Specific
+  Character Sets (Cyrillic, Greek, Japanese, ...) are shown as UTF-8 when already valid and as Latin-1
+  otherwise, so they never corrupt the display but their accents or letters can be wrong; only the first value
+  of a multi-valued Specific Character Set is used and ISO 2022 escape sequences are not interpreted.
+- The cursor readout shows modality values (Rescale Slope/Intercept, or the Modality LUT when the file has
+  one; 8 and 16-bit only) and, for colour images, the displayed 8-bit RGB values; it is 2D only.
+- Series loading keeps single-frame monochrome slices of the most common Series Instance UID and requires one
+  orientation, one pixel spacing and evenly spaced, distinct slice positions (otherwise `VolumeInconsistent`). A volume is
   capped at 128 MB and 2048 voxels per side by averaging blocks; the Options pane shows the factor.
 - Not a PACS client: no DICOMDIR, networking, annotations, measurements or multiplanar reformatting.
 
@@ -356,7 +366,7 @@ executable, so the controller can be tested without a QML module.
 ## Testing
 
 ```sh
-ctest --preset release                                    # all 190 tests (two Catch2 executables)
+ctest --preset release                                    # all tests (three Catch2 executables)
 build/release/tests/dicomcore_tests                       # core unit tests and core BDD scenarios
 build/release/tests/dicomapp_tests                        # controller, models, image provider, 3D data
 build/release/tests/dicomcore_tests "[!benchmark][gpu]"   # CPU render vs GPU packing benchmark (use a release build)
@@ -366,15 +376,18 @@ build/release/tests/dicomcore_tests "[!benchmark][gpu]"   # CPU render vs GPU pa
   transfer syntax, error codes for not-DICOM, empty, truncated and missing files, no pixel data, JPEG 2000 and
   Deflated rejection, MONOCHROME1 inversion, RGB/YBR pixels, window math, slope/intercept to HU, metadata,
   orientation labels, volume and series building, heightmap, GPU texture packing against the shader math,
-  controller state, models, settings, GPU fallback.
+  controller state, models, settings, language switching, GPU fallback.
 - **BDD scenarios** ([tests/features](tests/features), steps in [tests/bdd](tests/bdd)): the `.feature` files
   are the readable specification; each scenario is mirrored by hand as a Catch2 `SCENARIO` / `GIVEN` /
-  `WHEN` / `THEN` block (no Gherkin runner parses them). One scenario, "Switch language", is marked
-  `@pending` and has no test.
+  `WHEN` / `THEN` block (no Gherkin runner parses them).
 - Invalid fixtures (empty, random bytes, truncated, no pixel data, MONOCHROME1, series) are generated at
   run time; valid fixtures are in [tests/data](tests/data).
-- **Not covered by automated tests:** the QML files themselves (layout, animations, dialogs). They were
-  checked during development with a screenshot harness that drives the real window, which is not committed.
+- **QML smoke test** ([tests/qml](tests/qml), `dicomapp_qml_tests`): loads the real `Main` / `MainView` from
+  the QML module on the offscreen platform, opens a file and a series, toggles the Metadata, Errors, Options
+  and 3D views, switches theme and language, and fails on any QML warning or error (the notices of the
+  offscreen platform and "Qt Quick 3D cannot render without an RHI" are the only ones filtered).
+- **Not covered by automated tests:** how the interface looks (layout, animations, dialogs). It was checked
+  during development with a screenshot harness that drives the real window, which is not committed.
 
 ## Packaging and CI
 

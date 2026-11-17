@@ -13,8 +13,10 @@
 #include <dcmtk/dcmdata/dcxfer.h>
 
 #include "Codecs.h"
+#include "CheckedMath.h"
 #include "DicomFileState.h"
 #include "Guarded.h"
+#include "Text.h"
 
 namespace dv {
 
@@ -31,7 +33,7 @@ std::expected<void, DicomError> parseFile(const std::filesystem::path& path, Dcm
     if (!std::filesystem::is_regular_file(path, ec) || !std::ifstream(path, std::ios::binary).good())
         return std::unexpected(makeError(ErrorCode::FileUnreadable, path.string()));
 
-    const OFCondition status = file.loadFile(path.string().c_str());
+    const OFCondition status = file.loadFile(dcmtkFilename(path));
     if (status == EC_UnsupportedEncoding) // deflated dataset: DCMTK is built without zlib
         return std::unexpected(makeError(ErrorCode::UnsupportedTransferSyntax, "Deflated Explicit VR Little Endian"));
     if (status.bad())
@@ -79,6 +81,12 @@ std::string getString(DcmDataset& ds, const DcmTagKey& key)
     return ds.findAndGetOFStringArray(key, value).good() ? std::string(value.c_str()) : std::string();
 }
 
+// Free text (PN, LO, SH, ...) as UTF-8 according to the dataset's Specific Character Set.
+std::string getText(DcmDataset& ds, const DcmTagKey& key, const std::string& charset)
+{
+    return toUtf8(getString(ds, key), charset);
+}
+
 std::optional<double> getDouble(DcmDataset& ds, const DcmTagKey& key, unsigned long pos = 0)
 {
     Float64 value = 0;
@@ -96,6 +104,20 @@ std::optional<std::array<double, N>> getDoubles(DcmDataset& ds, const DcmTagKey&
         if (!v)
             return std::nullopt;
         values[i] = *v;
+    }
+    return values;
+}
+
+// Pair of integer strings (IS), such as Pixel Aspect Ratio.
+template <std::size_t N>
+std::optional<std::array<double, N>> getIntStrings(DcmDataset& ds, const DcmTagKey& key)
+{
+    std::array<double, N> values{};
+    for (std::size_t i = 0; i < N; ++i) {
+        Sint32 value = 0;
+        if (ds.findAndGetSint32(key, value, i).bad())
+            return std::nullopt;
+        values[i] = value;
     }
     return values;
 }
@@ -124,8 +146,9 @@ ImageInfo readInfo(DcmDataset& ds, E_TransferSyntax originalXfer)
     info.pixelRepresentation = getUShort(ds, DCM_PixelRepresentation, 0);
     info.photometric = parsePhotometric(getString(ds, DCM_PhotometricInterpretation));
     info.frameCount = std::max(1, getIntString(ds, DCM_NumberOfFrames, 1));
-    if (auto spacing = getDoubles<2>(ds, DCM_PixelSpacing))
-        info.pixelSpacing = spacing;
+    info.pixelSpacing = getDoubles<2>(ds, DCM_PixelSpacing);
+    info.imagerPixelSpacing = getDoubles<2>(ds, DCM_ImagerPixelSpacing);
+    info.pixelAspectRatio = getIntStrings<2>(ds, DCM_PixelAspectRatio);
     info.sliceThickness = getDouble(ds, DCM_SliceThickness);
     info.spacingBetweenSlices = getDouble(ds, DCM_SpacingBetweenSlices);
     info.imageOrientation = getDoubles<6>(ds, DCM_ImageOrientationPatient);
@@ -143,24 +166,44 @@ ImageInfo readInfo(DcmDataset& ds, E_TransferSyntax originalXfer)
     info.transferSyntaxUid = xfer.getXferID();
     info.transferSyntaxName = xfer.getXferName();
     info.modality = getString(ds, DCM_Modality);
-    info.patientName = getString(ds, DCM_PatientName);
-    info.patientId = getString(ds, DCM_PatientID);
-    info.studyDescription = getString(ds, DCM_StudyDescription);
-    info.seriesDescription = getString(ds, DCM_SeriesDescription);
+    const std::string charset = getString(ds, DCM_SpecificCharacterSet);
+    info.patientName = getText(ds, DCM_PatientName, charset);
+    info.patientId = getText(ds, DCM_PatientID, charset);
+    info.studyDescription = getText(ds, DCM_StudyDescription, charset);
+    info.seriesDescription = getText(ds, DCM_SeriesDescription, charset);
     info.studyDate = getString(ds, DCM_StudyDate);
     info.studyInstanceUid = getString(ds, DCM_StudyInstanceUID);
     info.seriesInstanceUid = getString(ds, DCM_SeriesInstanceUID);
     return info;
 }
 
-// Number of bytes an uncompressed (or decoded) pixel data element must hold.
-std::size_t expectedPixelBytes(const ImageInfo& info)
+// Number of bytes an uncompressed (or decoded) pixel data element must hold, or
+// nullopt when the (untrusted) header attributes overflow std::size_t.
+std::optional<std::size_t> expectedPixelBytes(const ImageInfo& info)
 {
     // YBR_FULL_422 stores chroma subsampled: two samples per pixel.
     const int samplesPerPixel = info.photometric == Photometric::YbrFull422 ? 2 : info.samplesPerPixel;
-    const std::size_t samples = static_cast<std::size_t>(info.rows) * static_cast<std::size_t>(info.columns)
-        * static_cast<std::size_t>(samplesPerPixel) * static_cast<std::size_t>(info.frameCount);
-    return samples * static_cast<std::size_t>((info.bitsAllocated + 7) / 8);
+    return checkedProduct({static_cast<std::size_t>(info.rows), static_cast<std::size_t>(info.columns),
+                           static_cast<std::size_t>(samplesPerPixel), static_cast<std::size_t>(info.frameCount),
+                           static_cast<std::size_t>(info.bitsAllocated / 8)});
+}
+
+// The one place that decides which sample layouts the viewer decodes: 8, 16 and
+// 32 allocated bits (32 only through DCMTK's CPU path), BitsStored within them.
+std::expected<void, DicomError> checkPixelLayout(const ImageInfo& info)
+{
+    if (info.rows <= 0 || info.columns <= 0 || info.bitsAllocated <= 0 || info.bitsStored <= 0
+        || info.samplesPerPixel <= 0) {
+        return std::unexpected(makeError(
+            ErrorCode::CorruptPixelData, "Missing or invalid Rows, Columns, SamplesPerPixel, BitsAllocated or BitsStored"));
+    }
+    if (info.bitsAllocated != 8 && info.bitsAllocated != 16 && info.bitsAllocated != 32) {
+        return std::unexpected(makeError(ErrorCode::UnsupportedPixelFormat,
+                                         "BitsAllocated " + std::to_string(info.bitsAllocated) + " is not supported"));
+    }
+    if (info.bitsStored > info.bitsAllocated)
+        return std::unexpected(makeError(ErrorCode::CorruptPixelData, "BitsStored exceeds BitsAllocated"));
+    return {};
 }
 
 std::expected<void, DicomError> prepare(const std::filesystem::path& path, DicomFileState& state,
@@ -186,15 +229,15 @@ std::expected<void, DicomError> prepare(const std::filesystem::path& path, Dicom
     }
 
     info = readInfo(ds, originalXfer);
-    if (info.rows <= 0 || info.columns <= 0 || info.bitsAllocated <= 0 || info.bitsStored <= 0
-        || info.bitsStored > info.bitsAllocated) {
-        return std::unexpected(
-            makeError(ErrorCode::CorruptPixelData, "Missing or invalid Rows, Columns, BitsAllocated or BitsStored"));
-    }
+    if (auto layout = checkPixelLayout(info); !layout)
+        return layout;
 
+    const auto expectedBytes = expectedPixelBytes(info);
+    if (!expectedBytes)
+        return std::unexpected(makeError(ErrorCode::CorruptPixelData, "Image size is out of range", "(7FE0,0010)"));
     DcmElement* pixelData = nullptr;
     if (ds.findAndGetElement(DCM_PixelData, pixelData).bad() || pixelData == nullptr
-        || pixelData->getLength(ds.getCurrentXfer()) < expectedPixelBytes(info)) {
+        || pixelData->getLength(ds.getCurrentXfer()) < *expectedBytes) {
         return std::unexpected(
             makeError(ErrorCode::CorruptPixelData, "Pixel data is shorter than the image size", "(7FE0,0010)"));
     }

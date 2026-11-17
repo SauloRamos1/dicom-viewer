@@ -5,8 +5,9 @@ import DicomViewer
 // The frame drawn by the GPU render path: windowing.frag turns the packed raw
 // texture (image://dicomraw, uploaded once per frame) into the windowed image,
 // so window, level, invert and colormap changes only move shader uniforms. It
-// fits the item like Image.PreserveAspectFit does for the CPU path, and stands
-// in for it inside View2D's transform items.
+// fills its item (View2D sizes that item to the image's displayed aspect, pixel
+// aspect included) and stands in for the CPU path's Image inside View2D's
+// transform items.
 Item {
     id: root
 
@@ -39,11 +40,7 @@ Item {
     ShaderEffect {
         id: effect
 
-        readonly property real aspect: DicomController.rows > 0 ? DicomController.columns / DicomController.rows : 1
-
-        anchors.centerIn: parent
-        width: Math.min(root.width, root.height * aspect)
-        height: width / aspect
+        anchors.fill: parent
         blending: false
 
         // Shader inputs, matched by name to windowing.frag.

@@ -59,6 +59,14 @@ struct MonoImageSpec {
 // (no window in the file, so presets fall back to Min-Max).
 void writeMonoImage(const std::filesystem::path& dst, const MonoImageSpec& spec);
 
+// A 1 x N image (as writeMonoImage) whose stored `samples` go through a Modality LUT Sequence: a
+// LUT of lut.size() entries starting at stored value `firstMapped` (no Rescale tags are used).
+void writeModalityLutImage(const std::filesystem::path& dst, const std::vector<std::uint16_t>& samples,
+                           const std::vector<std::uint16_t>& lut, int firstMapped = 0, int pixelRepresentation = 0);
+
+// A 1 x N unsigned 32-bit monochrome image without window tags.
+void write32BitImage(const std::filesystem::path& dst, const std::vector<std::uint32_t>& samples);
+
 // `count` single-frame slices of CT_small.dcm in `dir` (slice_000.dcm, ...), all in series
 // `seriesUid`: slice i lies at z = 5 * i mm with Instance Number i + 1 and stored value 900 + 40 * i in
 // pixel (0,0), so every slice shows as a different gray level there. Returns the paths in order.

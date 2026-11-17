@@ -5,6 +5,9 @@
 #include <cmath>
 #include <cstring>
 #include <mutex>
+#include <optional>
+#include <tuple>
+#include <utility>
 
 #include <dcmtk/config/osconfig.h>
 #include <dcmtk/dcmimage/diregist.h> // links the color image classes (RGB, YBR, palette)
@@ -38,6 +41,25 @@ ValueRange modalityRange(const ImageInfo& info) noexcept
     return {std::min(a, b), std::max(a, b)};
 }
 
+namespace {
+
+// Smallest and largest modality value of `frame` as DCMTK computes them, or nullopt when it cannot.
+std::optional<std::pair<double, double>> dcmtkMinMax(const DicomFile& file, int frame)
+{
+    if (frame < 0 || frame >= file.info().frameCount)
+        return std::nullopt;
+    const std::scoped_lock lock(file.state().mutex);
+    DcmDataset& dataset = file.state().dataset();
+    DicomImage image(&dataset, dataset.getCurrentXfer(), 0, static_cast<unsigned long>(frame), 1);
+    double lo = 0;
+    double hi = 0;
+    if (image.getStatus() != EIS_Normal || image.isMonochrome() == 0 || image.getMinMaxValues(lo, hi) == 0)
+        return std::nullopt;
+    return std::pair{lo, hi};
+}
+
+} // namespace
+
 std::expected<Voi, DicomError> presetVoi(WindowPreset preset, const DicomFile& file, int frame)
 {
     switch (preset) {
@@ -52,11 +74,18 @@ std::expected<Voi, DicomError> presetVoi(WindowPreset preset, const DicomFile& f
     case WindowPreset::MinMax: break;
     }
 
-    const auto values = file.rawModalityValues(frame);
-    if (!values)
+    double lo = 0;
+    double hi = 0;
+    if (const auto values = file.rawModalityValues(frame)) {
+        const auto [min, max] = std::ranges::minmax(*values);
+        lo = min;
+        hi = max;
+    } else if (auto range = dcmtkMinMax(file, frame)) { // layouts the sample reader does not cover (32-bit)
+        std::tie(lo, hi) = *range;
+    } else {
         return std::unexpected(values.error());
-    const auto [lo, hi] = std::ranges::minmax(*values);
-    return Voi{(static_cast<double>(hi) + lo + 1.0) / 2.0, static_cast<double>(hi) - lo + 1.0};
+    }
+    return Voi{(hi + lo + 1.0) / 2.0, hi - lo + 1.0};
 }
 
 namespace {

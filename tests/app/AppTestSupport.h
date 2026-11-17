@@ -3,10 +3,14 @@
 
 #include <QCoreApplication>
 #include <QDeadlineTimer>
+#include <QSettings>
+#include <QString>
 #include <QUrl>
 
 #include <filesystem>
 #include <functional>
+
+#include "TestSupport.h"
 
 namespace dv::test {
 
@@ -29,6 +33,23 @@ inline void pumpFor(int ms)
     while (!deadline.hasExpired())
         QCoreApplication::processEvents(QEventLoop::AllEvents, 10);
 }
+
+// Points QSettings at a scratch folder so the tests never touch real preferences.
+class IsolatedSettings
+{
+public:
+    IsolatedSettings()
+    {
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope,
+                           QString::fromStdString(m_dir.path().string()));
+    }
+
+    const std::filesystem::path &path() const { return m_dir.path(); }
+
+private:
+    TempDir m_dir;
+};
 
 inline QUrl urlOf(const std::filesystem::path &path)
 {

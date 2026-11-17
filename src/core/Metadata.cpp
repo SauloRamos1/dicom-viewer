@@ -13,6 +13,7 @@
 
 #include "DicomFileState.h"
 #include "Guarded.h"
+#include "Text.h"
 
 namespace dv {
 
@@ -76,7 +77,7 @@ std::string tagName(DcmTag& tag)
     return name == DcmTag_ERROR_TagName ? "Unknown Tag" : humanize(name);
 }
 
-TagEntry makeEntry(DcmElement& element, int depth)
+TagEntry makeEntry(DcmElement& element, int depth, const std::string& charset)
 {
     DcmTag tag(element.getTag());
     TagEntry entry{.group = tag.getGroup(),
@@ -89,19 +90,19 @@ TagEntry makeEntry(DcmElement& element, int depth)
     } else {
         OFString value;
         element.getOFStringArray(value);
-        entry.value = value.c_str();
+        entry.value = toUtf8(value.c_str(), charset);
         entry.truncated = truncate(entry.value);
     }
     return entry;
 }
 
-void walk(DcmItem& item, int depth, std::vector<TagEntry>& out)
+void walk(DcmItem& item, int depth, const std::string& charset, std::vector<TagEntry>& out)
 {
     for (unsigned long i = 0; i < item.card(); ++i) {
         DcmElement* element = item.getElement(i);
         if (element == nullptr)
             continue;
-        TagEntry entry = makeEntry(*element, depth);
+        TagEntry entry = makeEntry(*element, depth, charset);
         auto* sequence = dynamic_cast<DcmSequenceOfItems*>(element);
         if (sequence == nullptr) {
             out.push_back(std::move(entry));
@@ -112,7 +113,7 @@ void walk(DcmItem& item, int depth, std::vector<TagEntry>& out)
         out.push_back(std::move(entry));
         for (unsigned long n = 0; n < items; ++n) {
             if (DcmItem* nested = sequence->getItem(n))
-                walk(*nested, depth + 1, out);
+                walk(*nested, depth + 1, charset, out);
         }
     }
 }
@@ -120,8 +121,11 @@ void walk(DcmItem& item, int depth, std::vector<TagEntry>& out)
 std::vector<TagEntry> collect(DcmFileFormat& file)
 {
     std::vector<TagEntry> entries;
-    walk(*file.getMetaInfo(), 0, entries);
-    walk(*file.getDataset(), 0, entries);
+    // Specific Character Set of the dataset; the file meta header is plain ASCII.
+    OFString charset;
+    file.getDataset()->findAndGetOFString(DCM_SpecificCharacterSet, charset);
+    walk(*file.getMetaInfo(), 0, {}, entries);
+    walk(*file.getDataset(), 0, charset.c_str(), entries);
     return entries;
 }
 

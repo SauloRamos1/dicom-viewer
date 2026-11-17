@@ -39,14 +39,16 @@ void LanguageManager::setLanguage(const QString &language)
     QSettings().setValue(kLanguageKey, m_language);
 }
 
+QString LanguageManager::initialLanguage(const QString &stored, const QLocale &system)
+{
+    if (isSupported(stored))
+        return stored;
+    return system.language() == QLocale::Portuguese ? QStringLiteral("pt_BR") : QStringLiteral("en");
+}
+
 void LanguageManager::init()
 {
-    const QString stored = QSettings().value(kLanguageKey).toString();
-    const QString language = isSupported(stored)
-        ? stored
-        : (QLocale::system().language() == QLocale::Portuguese ? QStringLiteral("pt_BR")
-                                                               : QStringLiteral("en"));
-    apply(language);
+    apply(initialLanguage(QSettings().value(kLanguageKey).toString(), QLocale::system()));
 }
 
 void LanguageManager::apply(const QString &language)

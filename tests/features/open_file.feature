@@ -58,8 +58,6 @@ Feature: Open a DICOM file
     When I rotate the view 90 degrees clockwise or flip it
     Then the orientation labels follow the transformation
 
-  # Needs the language menu from step 4.
-  @pending
   Scenario: Switch language
     Given the interface language is English
     When I choose Portuguese (BR) from the language menu

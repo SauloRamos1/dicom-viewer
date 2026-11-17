@@ -11,6 +11,7 @@
 
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmdata/dcsequen.h>
 #include <dcmtk/dcmdata/dcxfer.h>
 
 #ifdef _WIN32
@@ -92,6 +93,46 @@ void writeMonoImage(const std::filesystem::path& dst, const MonoImageSpec& spec)
         } else {
             must(ds.putAndInsertUint16Array(DCM_PixelData, spec.samples.data(), spec.samples.size()));
         }
+    });
+}
+
+void writeModalityLutImage(const std::filesystem::path& dst, const std::vector<std::uint16_t>& samples,
+                           const std::vector<std::uint16_t>& lut, int firstMapped, int pixelRepresentation)
+{
+    writeMonoImage(dst, {.rows = 1,
+                         .columns = static_cast<int>(samples.size()),
+                         .pixelRepresentation = pixelRepresentation,
+                         .samples = samples});
+    rewrite(dst, dst, [&](DcmDataset& ds) {
+        DcmItem* item = nullptr;
+        const std::array<Uint16, 3> descriptor{static_cast<Uint16>(lut.size()), static_cast<Uint16>(firstMapped), 16};
+        if (ds.findOrCreateSequenceItem(DCM_ModalityLUTSequence, item, 0).bad()
+            || item->putAndInsertUint16Array(DCM_LUTDescriptor, descriptor.data(), 3).bad()
+            || item->putAndInsertUint16Array(DCM_LUTData, lut.data(), lut.size()).bad())
+            throw std::runtime_error("cannot write the Modality LUT");
+    });
+}
+
+void write32BitImage(const std::filesystem::path& dst, const std::vector<std::uint32_t>& samples)
+{
+    rewrite(dataFile("MR_small.dcm"), dst, [&](DcmDataset& ds) {
+        std::vector<Uint16> words; // little endian: low word first
+        for (const std::uint32_t sample : samples) {
+            words.push_back(static_cast<Uint16>(sample & 0xFFFFU));
+            words.push_back(static_cast<Uint16>(sample >> 16));
+        }
+        ds.putAndInsertUint16(DCM_Rows, 1);
+        ds.putAndInsertUint16(DCM_Columns, static_cast<Uint16>(samples.size()));
+        ds.putAndInsertString(DCM_NumberOfFrames, "1");
+        ds.putAndInsertUint16(DCM_BitsAllocated, 32);
+        ds.putAndInsertUint16(DCM_BitsStored, 32);
+        ds.putAndInsertUint16(DCM_HighBit, 31);
+        ds.putAndInsertUint16(DCM_PixelRepresentation, 0);
+        ds.putAndInsertString(DCM_RescaleSlope, "1");
+        ds.putAndInsertString(DCM_RescaleIntercept, "0");
+        ds.findAndDeleteElement(DCM_WindowCenter);
+        ds.findAndDeleteElement(DCM_WindowWidth);
+        ds.putAndInsertUint16Array(DCM_PixelData, words.data(), words.size());
     });
 }
 

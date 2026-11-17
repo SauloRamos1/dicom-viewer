@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <atomic>
+#include <initializer_list>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <vector>
 
 #include <dcmtk/dcmdata/dcdeftag.h>
@@ -23,6 +26,8 @@ struct SliceSpec {
     int instance{1};
     std::string seriesUid{"1.2.3.100"};
     int marker{0};               // stored value of pixel (0,0), identifies the slice
+    std::string orientation{"1\\0\\0\\0\\1\\0"};
+    std::optional<std::string> pixelSpacing; // keeps the file's own when empty
 };
 
 // Writes a CT_small based slice with the given position, instance and marker.
@@ -30,7 +35,9 @@ std::filesystem::path writeSlice(const TempDir& dir, std::string_view name, cons
 {
     const auto path = dir / name;
     rewrite(dataFile("CT_small.dcm"), path, [&](DcmDataset& ds) {
-        ds.putAndInsertString(DCM_ImageOrientationPatient, "1\\0\\0\\0\\1\\0");
+        ds.putAndInsertString(DCM_ImageOrientationPatient, spec.orientation.c_str());
+        if (spec.pixelSpacing)
+            ds.putAndInsertString(DCM_PixelSpacing, spec.pixelSpacing->c_str());
         if (spec.z)
             ds.putAndInsertString(DCM_ImagePositionPatient, ("0\\0\\" + std::to_string(*spec.z)).c_str());
         else
@@ -257,4 +264,101 @@ TEST_CASE("fromMultiFrame of a single frame is a one-slice volume, color is reje
     const auto rgb = dv::DicomFile::load(dataFile("SC_rgb_rle_2frame.dcm"));
     REQUIRE(rgb.has_value());
     CHECK(dv::Volume::fromMultiFrame(*rgb).error().code == ErrorCode::UnsupportedPhotometric);
+}
+
+namespace {
+
+std::vector<std::filesystem::path> writeAt(const TempDir& dir, std::initializer_list<double> zs)
+{
+    std::vector<std::filesystem::path> paths;
+    int i = 0;
+    for (const double z : zs) {
+        paths.push_back(writeSlice(dir, "s" + std::to_string(i) + ".dcm", {.z = z, .instance = i + 1, .marker = 100 * i}));
+        ++i;
+    }
+    return paths;
+}
+
+dv::DicomError seriesError(const std::vector<std::filesystem::path>& paths)
+{
+    const auto series = dv::loadSeries(paths);
+    REQUIRE_FALSE(series.has_value());
+    return series.error();
+}
+
+} // namespace
+
+TEST_CASE("loadSeries rejects non-uniform slice positions instead of resampling them", "[volume][error]")
+{
+    const TempDir dir;
+    const auto error = seriesError(writeAt(dir, {0, 5, 20}));
+    CHECK(error.code == ErrorCode::VolumeInconsistent);
+    CHECK_THAT(error.detail, Catch::Matchers::ContainsSubstring("uniform"));
+}
+
+TEST_CASE("loadSeries rejects two slices at the same position", "[volume][error]")
+{
+    const TempDir dir;
+    const auto error = seriesError(writeAt(dir, {0, 5, 5, 10}));
+    CHECK(error.code == ErrorCode::VolumeInconsistent);
+    CHECK_THAT(error.detail, Catch::Matchers::ContainsSubstring("same position"));
+}
+
+TEST_CASE("loadSeries rejects slices with another orientation or pixel spacing", "[volume][error]")
+{
+    const TempDir dir;
+    std::vector<std::filesystem::path> tilted{writeSlice(dir, "a.dcm", {.z = 0, .instance = 1}),
+                                              writeSlice(dir, "b.dcm", {.z = 5, .instance = 2, .orientation = "0\\1\\0\\0\\0\\-1"})};
+    auto error = seriesError(tilted);
+    CHECK(error.code == ErrorCode::VolumeInconsistent);
+    CHECK_THAT(error.detail, Catch::Matchers::ContainsSubstring("b.dcm"));
+    CHECK_THAT(error.detail, Catch::Matchers::ContainsSubstring("Image Orientation"));
+
+    std::vector<std::filesystem::path> scaled{writeSlice(dir, "c.dcm", {.z = 0, .instance = 1, .pixelSpacing = "0.5\\0.5"}),
+                                              writeSlice(dir, "d.dcm", {.z = 5, .instance = 2, .pixelSpacing = "0.7\\0.7"})};
+    error = seriesError(scaled);
+    CHECK(error.code == ErrorCode::VolumeInconsistent);
+    CHECK_THAT(error.detail, Catch::Matchers::ContainsSubstring("d.dcm"));
+    CHECK_THAT(error.detail, Catch::Matchers::ContainsSubstring("Pixel Spacing"));
+}
+
+TEST_CASE("loadSeries accepts rounding noise in positions and keeps a regular series unchanged", "[volume]")
+{
+    const TempDir dir;
+    const auto series = dv::loadSeries(writeAt(dir, {0, 5.001, 9.999, 15}));
+    REQUIRE(series.has_value());
+    CHECK(series->volume.depth == 4);
+    CHECK(series->volume.spacing[2] == Catch::Approx(5.0));
+    CHECK(series->skipped.empty());
+}
+
+TEST_CASE("loadSeries reports the damaged slices it leaves out", "[volume]")
+{
+    const TempDir dir;
+    auto paths = writeAt(dir, {0, 5, 10});
+    rewrite(paths[1], paths[1], [](DcmDataset& ds) {
+        const std::vector<Uint16> few(10);
+        ds.putAndInsertUint16Array(DCM_PixelData, few.data(), few.size());
+    });
+    writeBytes(dir / "notes.txt", std::vector<std::uint8_t>{'h', 'i'});
+    paths.push_back(dir / "notes.txt");
+
+    const auto series = dv::loadSeries(paths);
+    REQUIRE(series.has_value());
+    CHECK(series->volume.depth == 2);
+    REQUIRE(series->skipped.size() == 1); // the text file is not an image, the truncated slice is damaged
+    CHECK(series->skipped[0].path == paths[1]);
+    CHECK(series->skipped[0].error.code == ErrorCode::CorruptPixelData);
+}
+
+TEST_CASE("checkVolumeSize caps the working memory and survives overflow", "[volume][error]")
+{
+    CHECK(dv::checkVolumeSize(512, 512, 500).has_value());
+    for (const auto [w, h, d] : {std::tuple{65535, 65535, 1000}, {512, 512, 2100}, {2147483647, 2147483647, 2147483647}}) {
+        CAPTURE(w, h, d);
+        const auto result = dv::checkVolumeSize(w, h, d);
+        REQUIRE_FALSE(result.has_value());
+        CHECK(result.error().code == ErrorCode::VolumeTooLarge);
+    }
+    CHECK(dv::checkVolumeSize(0, 5, 5).has_value());
 }

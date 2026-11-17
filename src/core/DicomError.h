@@ -22,6 +22,9 @@ enum class ErrorCode {
     GpuUnavailable, // app notice (Info severity): the shader path cannot run, the CPU path is used
     NoDicomFiles,   // a series folder holds nothing that opens as a DICOM image
     SingleSliceSeries, // app notice (Info severity): the series has one slice, shown as a plain image
+    UnsupportedPixelFormat, // BitsAllocated/BitsStored this viewer cannot decode (e.g. 1-bit or 64-bit)
+    VolumeTooLarge,  // the series would need more memory than the loader allows
+    SkippedFiles,    // app notice (Warning severity): damaged files of a folder were left out of the series
 };
 
 enum class Severity { Info, Warning, Error };
@@ -54,6 +57,9 @@ constexpr std::string_view toString(ErrorCode code) noexcept
     case ErrorCode::GpuUnavailable: return "GpuUnavailable";
     case ErrorCode::NoDicomFiles: return "NoDicomFiles";
     case ErrorCode::SingleSliceSeries: return "SingleSliceSeries";
+    case ErrorCode::UnsupportedPixelFormat: return "UnsupportedPixelFormat";
+    case ErrorCode::VolumeTooLarge: return "VolumeTooLarge";
+    case ErrorCode::SkippedFiles: return "SkippedFiles";
     }
     return "Unknown";
 }
@@ -75,6 +81,9 @@ constexpr std::string_view defaultMessage(ErrorCode code) noexcept
     case ErrorCode::GpuUnavailable: return "GPU rendering unavailable, using CPU";
     case ErrorCode::NoDicomFiles: return "No DICOM files found";
     case ErrorCode::SingleSliceSeries: return "Series has a single slice";
+    case ErrorCode::UnsupportedPixelFormat: return "Unsupported pixel format";
+    case ErrorCode::VolumeTooLarge: return "Volume is too large to load";
+    case ErrorCode::SkippedFiles: return "Some files were skipped";
     }
     return "Unknown error";
 }

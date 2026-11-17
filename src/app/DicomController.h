@@ -5,8 +5,11 @@
 #include <QElapsedTimer>
 #include <QFutureWatcher>
 #include <QObject>
+#include <QPointF>
+#include <QSizeF>
 #include <QString>
 #include <QUrl>
+#include <QVariantMap>
 #include <QVector3D>
 #include <QtQml/qqmlregistration.h>
 
@@ -14,6 +17,7 @@
 #include <deque>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "DicomFile.h"
@@ -25,6 +29,7 @@
 #include "MetadataModel.h"
 #include "Metadata.h"
 #include "Orientation.h"
+#include "ViewGeometry.h"
 #include "Voi.h"
 #include "Volume.h"
 #include "VolumeGpu.h"
@@ -103,6 +108,13 @@ class DicomController : public QObject
     Q_PROPERTY(QString modality READ modality NOTIFY infoChanged)
     Q_PROPERTY(QString patientName READ patientName NOTIFY infoChanged)
     Q_PROPERTY(QString patientId READ patientId NOTIFY infoChanged)
+
+    // Width over height of one pixel (1 = square) and the physical pixel size as
+    // "row x column mm" (empty when the file only has a Pixel Aspect Ratio or
+    // nothing): ViewGeometry.h says where they come from. View2D draws the image
+    // columns * pixelAspect wide per `rows` high.
+    Q_PROPERTY(double pixelAspect READ pixelAspect NOTIFY infoChanged)
+    Q_PROPERTY(QString pixelSpacingText READ pixelSpacingText NOTIFY infoChanged)
 
     // Value range of the stored bits (modality units): bounds for the window controls.
     Q_PROPERTY(double valueMin READ valueMin NOTIFY infoChanged)
@@ -189,6 +201,9 @@ public:
     QString patientName() const { return QString::fromStdString(m_info.patientName); }
     QString patientId() const { return QString::fromStdString(m_info.patientId); }
 
+    double pixelAspect() const { return dv::pixelAspect(m_info); }
+    QString pixelSpacingText() const;
+
     double valueMin() const { return m_valueRange.min; }
     double valueMax() const { return m_valueRange.max; }
 
@@ -245,6 +260,12 @@ public:
     Q_INVOKABLE void rotateLeft();
     // Back to the image as stored: no rotation, no flip.
     Q_INVOKABLE void resetTransform();
+    // The image pixel under `screen` (viewport coordinates) as {x, y, text}, where
+    // `text` is the modality value of the current frame ("34 HU", unit for CT only)
+    // or "R 12  G 34  B 56" for a colour image; empty outside the image or without
+    // one. `zoom` (relative to fit) and `pan` (screen pixels) are View2D's. Reads
+    // the value held by the open file, no decoding, so it is cheap per mouse move.
+    Q_INVOKABLE QVariantMap pixelAt(const QPointF &screen, const QSizeF &viewport, double zoom, const QPointF &pan) const;
     // From the scene: the GPU path cannot run (software scene graph, shader
     // failed to load). Forces the CPU backend and adds a one-time info entry.
     Q_INVOKABLE void reportGpuUnavailable(const QString &reason);
@@ -327,7 +348,8 @@ private:
     static LoadResult loadFile(quint64 generation, const QString &path, bool useGpu);
     static LoadResult loadFolder(quint64 generation, const QString &folder, bool useGpu,
                                  const std::shared_ptr<std::atomic<bool>> &cancel);
-    static void prepareFirstFrame(LoadResult &result, std::shared_ptr<const dv::DicomFile> file, bool useGpu);
+    static void prepareFirstFrame(LoadResult &result, std::shared_ptr<const dv::DicomFile> file, bool useGpu,
+                                  bool gpuCapable, std::optional<dv::Voi> volumeWindow = std::nullopt);
     static void attachVolume(LoadResult &result, const dv::Volume &volume);
     static MeshResult buildMesh(const FrameSource &source, const dv::RenderParams &params, quint64 serial);
     void runLoad(std::function<LoadResult()> job);

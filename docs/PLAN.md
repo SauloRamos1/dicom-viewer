@@ -40,7 +40,7 @@ Mockup approved (Excalidraw). Main window, top to bottom:
 
 **Body** = horizontal `SplitView`:
 - **Left - Metadata** (collapsible): filter field + tag table grouped (Patient, Study/Series, Image). Columns: tag, name, VR, value.
-- **Center - Viewport**: 2D image or 3D scene. Overlays: patient/modality (top-left), orientation letters (from Image Orientation Patient), W/L + zoom + frame (bottom-left), pixel value / HU under cursor (bottom-right). Mouse: wheel zoom, drag pan, right-drag W/L, double-click fit.
+- **Center - Viewport**: 2D image or 3D scene. Overlays: patient/modality (top-left), orientation letters (from Image Orientation Patient), W/L + zoom + frame (bottom-left), pixel `x, y` + value (HU for CT) under the cursor (bottom-right, above the frame label). Mouse: wheel zoom, drag pan, right-drag W/L, double-click fit.
 - **Right - Errors** (toggle): list of entries (severity icon, message, tag, time). At startup shows sample errors flagged "preview". On failed load: cleared and filled with the real errors and the panel opens automatically. On successful load: cleared.
 
 **Options** = floating `Pane`, top-right of viewport, draggable by its header, closable:
@@ -53,7 +53,7 @@ Mockup approved (Excalidraw). Main window, top to bottom:
 - Reset
 - Step 4 notes: rotate/flip state lives in `DicomController` (`viewRotation`, `flipHorizontal`, `flipVertical`) so the orientation letters follow it (`dv::transformLabels`); View2D only draws it. Rotation is applied first, flips mirror the screen. The viewer area has a minimum width of 332 so the 300 px pane always fits inside.
 
-**Status bar**: file name, size, bits, photometric, frames, transfer syntax.
+**Status bar**: file name, size, pixel spacing (mm, when known), bits, photometric, frames, transfer syntax.
 
 **Splash screen**: frameless QML window, logo, app + Qt + DCMTK versions, progress bar with real init steps (register codecs, load settings, load translations, create Main), "Not for diagnostic use", minimum 1.5 s, fades into Main.
 
@@ -68,7 +68,9 @@ src/
     Windowing.*        VOI presets, applyWindow, renderFrame (DCMTK DicomImage) + invert
     Colormap.cpp       Gray/Bone/Hot/Jet LUTs
     Metadata.*         flat list of tags (group, element, name, VR, value) via DcmObject walk
+    Text.*             toUtf8(text, Specific Character Set): table-free conversion of DICOM text (see below)
     Orientation.*      orientation labels from (0020,0037)
+    ViewGeometry.*     pixelAspect (PixelSpacing > ImagerPixelSpacing > PixelAspectRatio > 1), screenToPixel (inverse of fit, zoom, pan, rotation, flips, pixel aspect)
     Volume.*           multi-frame or series -> 3D scalar volume (sorted by Image Position)
   app/             Qt glue
     DicomController    QML_SINGLETON (default-constructed; main.cpp adds its provider): open/reset,
@@ -98,8 +100,9 @@ Render paths (same input, comparable output):
   - **Texture encoding**: Qt Quick textures are 8 bits per channel, so the stored value `u = stored - storedMin` (storedMin = -2^(bitsStored-1) for signed data) goes into an RGBA8 `QImage` as R = high byte, G = low byte, B = 0, A = 255 (`dv::packFrame`, `core/GpuTexture.h`), served as `image://dicomraw/<revision>`. Portable (no R16/integer textures, same on Metal, D3D, Vulkan, GL). 8-bit images use the same pack. The packed frame is built once per frame/file; window, invert and colormap only change shader uniforms.
   - **Shader** `src/app/shaders/windowing.frag` (GLSL 440, `qt_add_shaders`, output `windowing.frag.qsb` next to the QML files). The texture is sampled with nearest filtering and the shader does its own bilinear blend (window and colormap per texel, then mix) when "Smooth interpolation" is on, matching what the hardware does for the CPU path's 8-bit image. Colormaps are a 256x1 texture, `image://dicomlut/<colormap>`. `GpuImage.qml` fits the effect like `Image.PreserveAspectFit` and replaces only the `Image` inside View2D's transform items, so zoom, pan, rotate and flip are shared.
   - **Windowing math**: DCMTK truncates (`floor`) the scaled value and, for MONOCHROME1, truncates the already inverted ramp; `dv::applyWindow` rounds. The shader follows DCMTK so both backends show the same gray levels (max 1 level apart, only where float32 vs double lands on an integer boundary; measured on the real Metal scene graph: at most 1 level for grayscale, a few levels where a 1-level change crosses a steep colormap entry, and a few isolated texel rows differ with nearest-neighbour minification).
-  - **Fallback to CPU**: colour images, 32-bit images and files with a Modality LUT Sequence (`gpuCapable == false`) stay on the CPU path (the Render section says so); the GPU choice is kept for the next file. `gpuAvailable` turns false when `GraphicsInfo.api` is Software/OpenVG/Null or the shader fails to load (`ShaderEffect.status == Error`): the controller forces CPU, the GPU segment is dimmed with an explanation and the Errors panel gets one info entry (`ErrorCode::GpuUnavailable`). The choice itself is stored by `AppSettings.renderBackend` ("cpu" default).
+  - **Fallback to CPU**: colour images, 32-bit images, files with a Modality LUT Sequence or a SIGMOID/LINEAR_EXACT VOI function, and series whose slices differ in rescale, signedness or polarity (`gpuCapable == false`, see `dv::gpuSupported`) stay on the CPU path (the Render section says so); the GPU choice is kept for the next file. `gpuAvailable` turns false when `GraphicsInfo.api` is Software/OpenVG/Null or the shader fails to load (`ShaderEffect.status == Error`): the controller forces CPU, the GPU segment is dimmed with an explanation and the Errors panel gets one info entry (`ErrorCode::GpuUnavailable`). The choice itself is stored by `AppSettings.renderBackend` ("cpu" default).
   - **Switching** never flickers: `gpuActive` (which content is on screen) only flips once the new backend's image is ready.
+  - **Blank frame on GPU -> CPU (found and fixed)**: a loop of 250 GPU/CPU switches on Metal grabbed a blank viewport after 192-215 GPU -> CPU switches (never after CPU -> GPU). Cause: the CPU `Image` was `asynchronous`, so `gpuActive` hid the shader item before the new revision had loaded. With a synchronous `Image` 0 of 750 switches blank. Not unit-testable (needs a real scene graph); the stress loop is a throwaway harness.
   - **Timing**: CPU = DicomImage render + 8-bit conversion. GPU = packing time on frame/file change plus the time from the property change to the next `frameSwapped`; that is a proxy that includes waiting for the next vsync (about 14 ms steps on a 72 Hz display), so small GPU values are not directly comparable with CPU values. The Options pane shows the last value, its backend and the mean of the last 10 samples since the backend was chosen.
   - **Benchmarks** (Catch2, hidden by default): `build/debug/tests/dicomcore_tests "[!benchmark][gpu]"` compares `renderFrame` against `packFrame` on a generated 2048x2048 16-bit image; use a release build (`cmake --preset release-local`) for meaningful numbers. Real GPU timing is measured in the app.
 
@@ -112,6 +115,8 @@ Render paths (same input, comparable output):
   - **Ray march** (`shaders/volume.vert/.frag`): front to back through the cube, early termination at alpha 0.97, opacity corrected for the real step so the look does not depend on the sample count, colormap from a 256x1 texture (`ColormapTexture`), invert and MONOCHROME1 as one flag. Deviation: these are Quick3D `CustomMaterial` *snippets* (snippets with a `MAIN()`, not complete shaders), which Qt Quick 3D completes and cross-compiles itself at run time, so they are plain resources and not `qt_add_shaders` outputs like `windowing.frag`. Run on Metal; nothing in them is backend specific (no integer textures, bounded loop).
   - **Series**: `dv::loadSeries` (core/Volume.*) keeps the most common Series Instance UID, sorts by position (Instance Number fallback) and returns the slice files with the volume; `DicomController::openSeries(folder)` (also used when `open` gets a directory, so a directory argument on the command line works). Slice N is frame N of the 2D view. A series of one slice falls back to the single image with an Info entry (`SingleSliceSeries`); an empty folder gives `NoDicomFiles`. The 3D state is `view3D` (set from the TopBar button), `hasVolume`, `volumeSize/Spacing/Downsample`.
   - **Options**: the "3D" section only exists in the 3D view and shows only what the current kind uses (Depth + Wireframe for a heightmap, Threshold + Opacity + Steps for a volume); Transform and Render are hidden in 3D; only depth scale, threshold, opacity and steps persist. The camera (orbit, zoom, Ctrl+drag pan) is `OrbitCameraController` and is not remembered.
+
+- Pixel aspect and cursor readout (post step 8): View2D sizes the image box to `columns x pixelAspect : rows` (non-uniform scale before fit, so fit, zoom and 90 degree rotation keep working; zoom stays relative to fit) and the box content stretches to fill it, for both the CPU `Image` and `GpuImage`. `DicomController::pixelAt(screen, viewport, zoom, pan)` maps the pointer with `dv::screenToPixel` and reads `DicomFile::valueAt` of the current frame (O(1), no decode, mutex-guarded) or, for colour, the shown 8-bit RGB frame (invert undone). QML asks at most once per frame (16 ms timer) and hides the readout outside the image and while a button is pressed (pan, W/L). Deviation found by the visual harness: the idle `BusyIndicator` in the viewport centre swallowed hover, so it has `hoverEnabled: false`.
 
 ## 4. Error handling
 
@@ -155,6 +160,8 @@ QML: `qmltestrunner` smoke tests (TopBar tooltips present, toggles flip panels).
 Agents: Sonnet for implementation/tests per step, Haiku for mechanical work (font download, sample data, translations), Opus only for review of shaders/threading.
 
 ## 7. Open items
+
+- **Text encoding** (decided, limitation): DICOM text is shown as UTF-8 through `dv::toUtf8` (patient name/id, descriptions, metadata values). DCMTK's own converter needs the oficonv data files (it flooded stderr without them), so only table-free sets are converted: ISO_IR 100 (Latin-1) is converted, ISO_IR 192 and ASCII pass through, and any other declared set (Cyrillic, Greek, Japanese, Chinese, Korean, ...) keeps text that is already valid UTF-8 and reads anything else as Latin-1, so the result is always valid UTF-8 but accents of those sets can be wrong. Of a multi-valued (0008,0005) (ISO 2022 code extension with escape sequences) only the first value is used and escape sequences are not interpreted.
 
 - Git remote (GitHub repo name, public?) - needed for delivery.
 

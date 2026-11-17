@@ -28,7 +28,8 @@ enum class Photometric {
 };
 
 // Image attributes read once at load time. Spacing arrays are in the DICOM
-// order: pixelSpacing = {row spacing, column spacing}.
+// order: pixelSpacing = {row spacing, column spacing} (see ViewGeometry.h for
+// what the viewer makes of them).
 struct ImageInfo {
     int rows{};
     int columns{};
@@ -39,6 +40,8 @@ struct ImageInfo {
     Photometric photometric{Photometric::Other};
     int frameCount{1};
     std::optional<std::array<double, 2>> pixelSpacing;
+    std::optional<std::array<double, 2>> imagerPixelSpacing; // (0018,1164), projection radiography
+    std::optional<std::array<double, 2>> pixelAspectRatio;   // (0028,0034) = {vertical, horizontal} size
     std::optional<double> sliceThickness;
     std::optional<double> spacingBetweenSlices;
     std::optional<std::array<double, 6>> imageOrientation; // (0020,0037)
@@ -76,8 +79,9 @@ public:
     [[nodiscard]] const ImageInfo& info() const noexcept { return info_; }
     [[nodiscard]] const std::filesystem::path& path() const noexcept { return path_; }
 
-    // Modality-transformed values (stored * slope + intercept) of one frame of
-    // a monochrome image, row-major. Modality LUT sequences are not applied.
+    // Modality-transformed values of one frame of an 8 or 16-bit monochrome
+    // image, row-major: the Modality LUT when the file has one, else
+    // stored * slope + intercept. Other bit depths fail with CorruptPixelData.
     [[nodiscard]] std::expected<std::vector<float>, DicomError> rawModalityValues(int frame) const;
 
     // Modality-transformed value at column `x`, row `y` of `frame`. O(1).

@@ -89,6 +89,7 @@ FocusScope {
 
     BusyIndicator {
         anchors.centerIn: parent
+        hoverEnabled: false // an idle indicator must not take the pointer from the image under it
         running: DicomController.busy
         Material.accent: Theme.accent
     }

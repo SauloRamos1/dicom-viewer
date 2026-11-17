@@ -15,6 +15,10 @@ set(DCMTK_WITH_DOXYGEN OFF CACHE BOOL "" FORCE)
 foreach(opt TIFF PNG XML ZLIB OPENSSL ICONV WRAP OPENJPEG SNDFILE)
     set(DCMTK_WITH_${opt} OFF CACHE BOOL "" FORCE)
 endforeach()
+# Unicode file names on Windows: open files through their UTF-16 names.
+if(WIN32)
+    set(DCMTK_WIDE_CHAR_FILE_IO_FUNCTIONS ON CACHE BOOL "" FORCE)
+endif()
 # Compile the data dictionary in: no external dictionary file at runtime.
 set(DCMTK_DEFAULT_DICT builtin CACHE STRING "" FORCE)
 

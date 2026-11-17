@@ -2,10 +2,12 @@
 #include "Volume.h"
 
 #include <algorithm>
+#include <cmath>
 #include <map>
 #include <optional>
 #include <string>
 
+#include "CheckedMath.h"
 #include "Guarded.h"
 
 namespace dv {
@@ -38,8 +40,14 @@ std::array<double, 3> spacingOf(const ImageInfo& info, double z)
     return {ps ? (*ps)[1] : 1.0, ps ? (*ps)[0] : 1.0, z};
 }
 
+// Direction cosines and pixel spacing are compared at these absolute tolerances;
+// slice positions at kPositionTolerance (millimetres) or 1% of the median step.
+constexpr double kOrientationTolerance = 1e-3;
+constexpr double kSpacingTolerance = 1e-3;
+constexpr double kPositionTolerance = 0.01;
+constexpr double kPositionRelativeTolerance = 0.01;
+
 struct Slice {
-    std::vector<float> values;
     DicomFile file;
     std::optional<Vec3> position;
     std::optional<int> instance;
@@ -73,12 +81,72 @@ std::optional<std::vector<double>> sortSlices(std::vector<Slice>& slices, const 
     return std::nullopt;
 }
 
+template <typename Array>
+bool sameWithin(const std::optional<Array>& a, const std::optional<Array>& b, double tolerance)
+{
+    if (a.has_value() != b.has_value())
+        return false;
+    return !a || std::ranges::equal(*a, *b, [&](double x, double y) { return std::abs(x - y) <= tolerance; });
+}
+
+std::unexpected<DicomError> inconsistent(std::string detail)
+{
+    return std::unexpected(makeError(ErrorCode::VolumeInconsistent, std::move(detail)));
+}
+
+std::string nameOf(const Slice& slice)
+{
+    return slice.file.path().filename().string();
+}
+
+// Sorted slice positions along the normal must be distinct and evenly spaced:
+// the volume has a single slice spacing, so anything else would be resampled silently.
+std::expected<void, DicomError> checkUniformSpacing(const std::vector<Slice>& slices, const std::vector<double>& positions)
+{
+    std::vector<double> steps;
+    for (std::size_t i = 1; i < positions.size(); ++i) {
+        const double step = positions[i] - positions[i - 1];
+        if (step <= kPositionTolerance)
+            return inconsistent(nameOf(slices[i - 1]) + " and " + nameOf(slices[i]) + " are at the same position");
+        steps.push_back(step);
+    }
+    if (steps.empty())
+        return {};
+    std::ranges::sort(steps);
+    const double median = steps.size() % 2 == 1 ? steps[steps.size() / 2]
+                                                 : (steps[steps.size() / 2 - 1] + steps[steps.size() / 2]) / 2;
+    const double tolerance = std::max(kPositionTolerance, kPositionRelativeTolerance * median);
+    for (std::size_t i = 1; i < positions.size(); ++i) {
+        const double step = positions[i] - positions[i - 1];
+        if (std::abs(step - median) > tolerance) {
+            return inconsistent("slice spacing is not uniform: " + std::to_string(step) + " mm between "
+                                + nameOf(slices[i - 1]) + " and " + nameOf(slices[i]) + ", expected "
+                                + std::to_string(median) + " mm");
+        }
+    }
+    return {};
+}
+
 } // namespace
+
+std::expected<void, DicomError> checkVolumeSize(int width, int height, int depth)
+{
+    const auto bytes = checkedProduct({static_cast<std::size_t>(std::max(width, 0)), static_cast<std::size_t>(std::max(height, 0)),
+                                       static_cast<std::size_t>(std::max(depth, 0)), sizeof(float)});
+    if (!bytes || *bytes > kMaxVolumeBytes) {
+        return std::unexpected(makeError(ErrorCode::VolumeTooLarge,
+                                         std::to_string(width) + "x" + std::to_string(height) + "x" + std::to_string(depth)
+                                             + " voxels exceed the " + std::to_string(kMaxVolumeBytes >> 20) + " MiB limit"));
+    }
+    return {};
+}
 
 std::expected<Volume, DicomError> Volume::fromMultiFrame(const DicomFile& file)
 {
     return guarded<Volume>([&]() -> std::expected<Volume, DicomError> {
         const ImageInfo& info = file.info();
+        if (auto fits = checkVolumeSize(info.columns, info.rows, info.frameCount); !fits)
+            return std::unexpected(std::move(fits.error()));
         Volume volume{.width = info.columns,
                       .height = info.rows,
                       .depth = info.frameCount,
@@ -101,14 +169,20 @@ std::expected<Series, DicomError> loadSeries(std::span<const std::filesystem::pa
 
         std::optional<DicomError> firstError;
         std::vector<DicomFile> files;
+        std::vector<SkippedFile> skipped;
         for (const auto& path : paths) {
             if (cancelled())
                 return cancelledError();
             auto file = DicomFile::load(path);
-            if (file)
+            if (file) {
                 files.push_back(*std::move(file));
-            else if (!firstError)
-                firstError = std::move(file.error());
+                continue;
+            }
+            if (!firstError)
+                firstError = file.error();
+            // Files that are not images at all (text, DICOMDIR, reports) are not worth a notice; damaged images are.
+            if (file.error().code != ErrorCode::NotDicom && file.error().code != ErrorCode::NoPixelData)
+                skipped.push_back({.path = path, .error = std::move(file.error())});
         }
 
         if (files.empty()) {
@@ -145,15 +219,22 @@ std::expected<Series, DicomError> loadSeries(std::span<const std::filesystem::pa
                     name + " is " + std::to_string(info.columns) + "x" + std::to_string(info.rows) + ", expected "
                         + std::to_string(reference->columns) + "x" + std::to_string(reference->rows)));
             }
-            auto values = file.rawModalityValues(0);
-            if (!values)
-                return std::unexpected(std::move(values.error()));
+            if (reference && !sameWithin(info.imageOrientation, reference->imageOrientation, kOrientationTolerance))
+                return inconsistent(name + " has a different Image Orientation (Patient)");
+            if (reference && !sameWithin(info.pixelSpacing, reference->pixelSpacing, kSpacingTolerance))
+                return inconsistent(name + " has a different Pixel Spacing");
             if (!reference)
                 reference = info;
-            slices.push_back({.values = std::move(*values), .file = file, .position = info.imagePosition, .instance = info.instanceNumber});
+            slices.push_back({.file = file, .position = info.imagePosition, .instance = info.instanceNumber});
         }
 
+        if (auto fits = checkVolumeSize(reference->columns, reference->rows, static_cast<int>(slices.size())); !fits)
+            return std::unexpected(std::move(fits.error()));
         const auto projected = sortSlices(slices, sliceNormalOf(*reference));
+        if (projected) {
+            if (auto uniform = checkUniformSpacing(slices, *projected); !uniform)
+                return std::unexpected(std::move(uniform.error()));
+        }
         const double sliceSpacing = projected && projected->size() > 1
             ? (projected->back() - projected->front()) / static_cast<double>(projected->size() - 1)
             : nominalSliceSpacing(*reference);
@@ -162,9 +243,16 @@ std::expected<Series, DicomError> loadSeries(std::span<const std::filesystem::pa
                                  .height = reference->rows,
                                  .depth = static_cast<int>(slices.size()),
                                  .spacing = spacingOf(*reference, sliceSpacing)}};
-        series.volume.voxels.reserve(slices.size() * slices.front().values.size());
+        series.skipped = std::move(skipped);
+        series.volume.voxels.reserve(slices.size() * static_cast<std::size_t>(reference->rows)
+                                     * static_cast<std::size_t>(reference->columns));
         for (Slice& slice : slices) {
-            series.volume.voxels.insert(series.volume.voxels.end(), slice.values.begin(), slice.values.end());
+            if (cancelled())
+                return cancelledError();
+            auto values = slice.file.rawModalityValues(0);
+            if (!values)
+                return std::unexpected(std::move(values.error()));
+            series.volume.voxels.insert(series.volume.voxels.end(), values->begin(), values->end());
             series.slices.push_back(std::move(slice.file));
         }
         return series;

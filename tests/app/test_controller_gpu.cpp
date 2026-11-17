@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <numeric>
 
+#include <dcmtk/dcmdata/dcdeftag.h>
+
 #include "AppTestSupport.h"
 #include "DicomController.h"
 #include "ErrorText.h"
@@ -367,4 +369,74 @@ TEST_CASE("GPU render times run from the change to the next frame swap", "[app][
         CHECK(controller.lastRenderBackend() == DicomController::Cpu);
         CHECK(controller.averageRenderMs() == Catch::Approx(controller.lastRenderMs()));
     }
+}
+
+TEST_CASE("A series with different rescale per slice falls back to the CPU backend", "[app][gpu][series]")
+{
+    const TempDir dir;
+    const auto paths = writeCtSeries(dir.path(), 3);
+    const auto openSeries = [&](DicomController &controller) {
+        controller.setRenderBackend(DicomController::Gpu);
+        controller.openSeries(urlOf(dir.path()));
+        REQUIRE(controller.busy());
+        REQUIRE(pumpUntil([&] { return !controller.busy(); }));
+        REQUIRE(controller.hasVolume());
+    };
+
+    DicomController uniform;
+    openSeries(uniform);
+    CHECK(uniform.gpuCapable()); // one set of uniforms renders every slice
+    CHECK(uniform.gpuActive());
+
+    // DCMTK reads big pixel data lazily, so the edited copy goes to another name first.
+    rewrite(paths[1], dir / "edited.dcm", [](DcmDataset &ds) { ds.putAndInsertString(DCM_RescaleIntercept, "-500"); });
+    std::filesystem::rename(dir / "edited.dcm", paths[1]);
+    DicomController mixed;
+    openSeries(mixed);
+    CHECK_FALSE(mixed.gpuCapable()); // slice 1 would be shaded with slice 0's intercept
+    CHECK_FALSE(mixed.gpuActive());
+    CHECK_FALSE(mixed.frameStore()->get().isNull());
+    mixed.setFrame(1);
+    // Slice 1 shows through its own intercept, as DCMTK renders it.
+    const QImage expected = expectedCpu(paths[1], 0, {.voi = {mixed.windowCenter(), mixed.windowWidth()}});
+    CHECK(pumpUntil([&] { return mixed.frameStore()->get() == expected; }));
+}
+
+TEST_CASE("A file with a non-linear VOI function is rendered on the CPU", "[app][gpu]")
+{
+    const TempDir dir;
+    rewrite(dataFile("MR_small.dcm"), dir / "sigmoid.dcm",
+            [](DcmDataset &ds) { ds.putAndInsertString(DCM_VOILUTFunction, "SIGMOID"); });
+    DicomController controller;
+    controller.setRenderBackend(DicomController::Gpu);
+    openAndWait(controller, dir / "sigmoid.dcm");
+    REQUIRE(controller.hasImage());
+    CHECK_FALSE(controller.gpuCapable());
+    CHECK_FALSE(controller.gpuActive());
+    CHECK_FALSE(controller.frameStore()->get().isNull());
+}
+
+TEST_CASE("The default window of a Modality LUT file is in LUT units", "[app][gpu]")
+{
+    const TempDir dir;
+    writeModalityLutImage(dir / "lut.dcm", {0, 1, 0, 1}, {1000, 2000});
+    DicomController controller;
+    controller.setRenderBackend(DicomController::Gpu);
+    openAndWait(controller, dir / "lut.dcm");
+    REQUIRE(controller.hasImage());
+    CHECK_FALSE(controller.gpuCapable());
+    CHECK(controller.windowCenter() == Catch::Approx(1500.5));
+    CHECK(controller.windowWidth() == Catch::Approx(1001.0));
+    CHECK(controller.frameStore()->get() == expectedCpu(dir / "lut.dcm", 0, {.voi = {1500.5, 1001.0}}));
+}
+
+TEST_CASE("A 32-bit image without a window opens with a min-max window", "[app][gpu]")
+{
+    const TempDir dir;
+    write32BitImage(dir / "wide.dcm", {0, 1000, 70000, 100000});
+    DicomController controller;
+    openAndWait(controller, dir / "wide.dcm");
+    REQUIRE(controller.hasImage());
+    CHECK(controller.windowCenter() == Catch::Approx(50000.5));
+    CHECK(controller.windowWidth() == Catch::Approx(100001.0));
 }

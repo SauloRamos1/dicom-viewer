@@ -30,11 +30,24 @@ struct Volume {
         std::span<const std::filesystem::path> paths);
 };
 
+// A file of a folder that looked like a DICOM image but could not be loaded.
+struct SkippedFile {
+    std::filesystem::path path;
+    DicomError error;
+};
+
+// Working memory the loader may use for the voxels of one volume.
+inline constexpr std::size_t kMaxVolumeBytes = std::size_t{2} << 30;
+
+// VolumeTooLarge when width * height * depth floats exceed kMaxVolumeBytes (or overflow).
+[[nodiscard]] std::expected<void, DicomError> checkVolumeSize(int width, int height, int depth);
+
 // A series loaded from a folder: its volume and the files of its slices, one per
 // volume slice in the same (depth) order, so a viewer can show slice N as an image.
 struct Series {
     Volume volume;
     std::vector<DicomFile> slices;
+    std::vector<SkippedFile> skipped;
 };
 
 // Single-frame monochrome slices of one series. Files that are not valid DICOM

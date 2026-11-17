@@ -457,3 +457,26 @@ TEST_CASE("The view transform resets on load and on New and needs an image", "[a
     controller.reset();
     CHECK(controller.viewRotation() == 0);
 }
+
+TEST_CASE("A Latin-1 patient name reaches the UI as proper text", "[app]")
+{
+    const TempDir dir;
+    rewrite(dataFile("MR_small.dcm"), dir / "latin1.dcm", [](DcmDataset &ds) {
+        ds.putAndInsertString(DCM_SpecificCharacterSet, "ISO_IR 100");
+        ds.putAndInsertString(DCM_PatientName, "Jos\xE9^Mu\xF1oz");
+    });
+    DicomController controller;
+    openAndWait(controller, dir / "latin1.dcm");
+    REQUIRE(controller.hasImage());
+    CHECK(controller.patientName() == QString::fromUtf8("Jos\xC3\xA9^Mu\xC3\xB1oz"));
+    const auto *model = controller.metadata();
+    bool found = false;
+    for (int row = 0; row < model->rowCount(); ++row) {
+        if (model->data(model->index(row, 0), MetadataModel::NameRole).toString() == QStringLiteral("Patient Name")) {
+            CHECK(model->data(model->index(row, 0), MetadataModel::ValueRole).toString()
+                  == QString::fromUtf8("Jos\xC3\xA9^Mu\xC3\xB1oz"));
+            found = true;
+        }
+    }
+    CHECK(found);
+}

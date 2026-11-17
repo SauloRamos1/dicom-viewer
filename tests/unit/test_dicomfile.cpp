@@ -37,6 +37,37 @@ dv::DicomError loadError(const std::filesystem::path& path)
     return result.error();
 }
 
+// Layout attributes of a file built at runtime; `pixelBytes` bytes of pixel data are written,
+// whatever the attributes claim.
+struct Layout {
+    int rows{1};
+    int columns{1};
+    const char* frames{"1"};
+    int samplesPerPixel{1};
+    const char* photometric{"MONOCHROME2"};
+    int bitsAllocated{16};
+    int bitsStored{16};
+    std::size_t pixelBytes{2};
+};
+
+std::filesystem::path writeLayout(const TempDir& dir, const Layout& layout)
+{
+    const auto path = dir / "layout.dcm";
+    rewrite(dataFile("MR_small.dcm"), path, [&](DcmDataset& ds) {
+        ds.putAndInsertUint16(DCM_Rows, static_cast<Uint16>(layout.rows));
+        ds.putAndInsertUint16(DCM_Columns, static_cast<Uint16>(layout.columns));
+        ds.putAndInsertString(DCM_NumberOfFrames, layout.frames);
+        ds.putAndInsertUint16(DCM_SamplesPerPixel, static_cast<Uint16>(layout.samplesPerPixel));
+        ds.putAndInsertString(DCM_PhotometricInterpretation, layout.photometric);
+        ds.putAndInsertUint16(DCM_BitsAllocated, static_cast<Uint16>(layout.bitsAllocated));
+        ds.putAndInsertUint16(DCM_BitsStored, static_cast<Uint16>(layout.bitsStored));
+        ds.putAndInsertUint16(DCM_HighBit, static_cast<Uint16>(layout.bitsStored - 1));
+        const std::vector<Uint8> bytes(layout.pixelBytes);
+        ds.putAndInsertUint8Array(DCM_PixelData, bytes.data(), bytes.size());
+    });
+    return path;
+}
+
 } // namespace
 
 TEST_CASE("load reads image attributes for every supported file", "[dicomfile]")
@@ -202,4 +233,58 @@ TEST_CASE("DicomFile copies share the decoded state", "[dicomfile]")
     REQUIRE(file.has_value());
     const dv::DicomFile copy = *file;
     CHECK(*copy.rawModalityValues(0) == *file->rawModalityValues(0));
+}
+
+TEST_CASE("load rejects BitsAllocated values the viewer cannot decode before touching pixels", "[dicomfile][error]")
+{
+    const TempDir dir;
+    // 64 allocated bits with 33 stored used to reach `1u << 33` in the sample reader.
+    for (const Layout layout : {Layout{.bitsAllocated = 64, .bitsStored = 33, .pixelBytes = 8},
+                                Layout{.bitsAllocated = 12, .bitsStored = 12, .pixelBytes = 2}}) {
+        CAPTURE(layout.bitsAllocated);
+        const auto error = loadError(writeLayout(dir, layout));
+        CHECK(error.code == ErrorCode::UnsupportedPixelFormat);
+        CHECK_THAT(error.detail, Catch::Matchers::ContainsSubstring("BitsAllocated " + std::to_string(layout.bitsAllocated)));
+    }
+}
+
+TEST_CASE("a 1-bit image is unsupported, not truncated", "[dicomfile][error]")
+{
+    const TempDir dir;
+    // 1x16 pixels of one bit need 2 bytes: the file is complete, only the format is out of scope.
+    const auto error = loadError(writeLayout(dir, {.columns = 16, .bitsAllocated = 1, .bitsStored = 1, .pixelBytes = 2}));
+    CHECK(error.code == ErrorCode::UnsupportedPixelFormat);
+    CHECK_THAT(error.detail, Catch::Matchers::ContainsSubstring("BitsAllocated 1 is not supported"));
+}
+
+TEST_CASE("BitsStored beyond BitsAllocated is corrupt", "[dicomfile][error]")
+{
+    const TempDir dir;
+    CHECK(loadError(writeLayout(dir, {.bitsAllocated = 16, .bitsStored = 17, .pixelBytes = 2})).code
+          == ErrorCode::CorruptPixelData);
+}
+
+TEST_CASE("an image size that overflows size_t is rejected", "[dicomfile][error]")
+{
+    const TempDir dir;
+    // 32768 * 32768 * 2^30 frames * 4 samples * 4 bytes = 2^64, which wraps to 0 bytes expected.
+    const auto error = loadError(writeLayout(dir, {.rows = 32768, .columns = 32768, .frames = "1073741824",
+                                                   .samplesPerPixel = 4, .bitsAllocated = 32, .bitsStored = 32,
+                                                   .pixelBytes = 4}));
+    CHECK(error.code == ErrorCode::CorruptPixelData);
+}
+
+TEST_CASE("a header claiming a huge image over a short pixel element is corrupt", "[dicomfile][error]")
+{
+    const TempDir dir;
+    CHECK(loadError(writeLayout(dir, {.rows = 65535, .columns = 65535, .frames = "2147483647"})).code
+          == ErrorCode::CorruptPixelData);
+}
+
+TEST_CASE("32-bit monochrome images still load (CPU rendering only)", "[dicomfile]")
+{
+    const TempDir dir;
+    const auto file = dv::DicomFile::load(writeLayout(dir, {.bitsAllocated = 32, .bitsStored = 32, .pixelBytes = 4}));
+    REQUIRE(file.has_value());
+    CHECK(file->rawModalityValues(0).error().code == ErrorCode::CorruptPixelData);
 }

@@ -11,6 +11,7 @@
 #include <dcmtk/config/osconfig.h>
 #include <dcmtk/dcmdata/dcdatset.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/ofstd/offile.h>
 
 #include "DicomError.h"
 #include "DicomFile.h"
@@ -30,6 +31,18 @@ struct DicomFileState {
 // Existence/readability checks, then parse. Any failure is a DicomError.
 [[nodiscard]] std::expected<void, DicomError> parseFile(const std::filesystem::path& path,
                                                         DcmFileFormat& file);
+
+// DCMTK file name for `path`. On Windows, with DCMTK built with wide file I/O
+// (see cmake/Dependencies.cmake), the UTF-16 name is passed so Unicode paths
+// are not narrowed to the ANSI code page; elsewhere the native narrow name is UTF-8.
+[[nodiscard]] inline OFFilename dcmtkFilename(const std::filesystem::path& path)
+{
+#if defined(_WIN32) && defined(WIDE_CHAR_FILE_IO_FUNCTIONS)
+    return OFFilename(path.c_str(), OFTrue);
+#else
+    return OFFilename(path.string().c_str());
+#endif
+}
 
 // FrameOutOfRange unless 0 <= frame < info.frameCount.
 [[nodiscard]] inline std::expected<void, DicomError> checkFrame(const ImageInfo& info, int frame)

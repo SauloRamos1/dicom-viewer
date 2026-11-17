@@ -17,6 +17,9 @@ QString ErrorText::message(dv::ErrorCode code)
     case dv::ErrorCode::GpuUnavailable: return tr("GPU rendering unavailable, using CPU");
     case dv::ErrorCode::NoDicomFiles: return tr("No DICOM files were found in the folder");
     case dv::ErrorCode::SingleSliceSeries: return tr("The series has a single slice, shown as a plain image");
+    case dv::ErrorCode::UnsupportedPixelFormat: return tr("Unsupported pixel format");
+    case dv::ErrorCode::VolumeTooLarge: return tr("The volume is too large to load");
+    case dv::ErrorCode::SkippedFiles: return tr("Some files were skipped");
     }
     return tr("Unknown error");
 }

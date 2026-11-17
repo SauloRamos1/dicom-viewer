@@ -4,9 +4,16 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <QCoreApplication>
+#include <QQmlComponent>
+#include <QQmlEngine>
+
+#include <memory>
+
 #include "AppTestSupport.h"
 #include "DicomController.h"
 #include "ErrorText.h"
+#include "LanguageManager.h"
 #include "ShaderReference.h"
 #include "TestSupport.h"
 
@@ -275,6 +282,35 @@ SCENARIO("GPU unavailable falls back to CPU", "[bdd][open_file][viewer][gpu]")
             {
                 viewer.setRenderBackend(DicomController::Gpu);
                 CHECK(viewer.renderBackend() == DicomController::Cpu);
+            }
+        }
+    }
+}
+
+SCENARIO("Switch language", "[bdd][open_file][viewer][language]")
+{
+    GIVEN("the interface language is English")
+    {
+        const IsolatedSettings isolated;
+        QQmlEngine engine;
+        LanguageManager menu(&engine); // the language menu sets LanguageManager.language
+        menu.setLanguage(QStringLiteral("en"));
+        // The "Frame %1/%2" overlay of the 2D view, as QML binds it with qsTr().
+        QQmlComponent overlay(&engine);
+        overlay.setData("import QtQml\nQtObject { property string text: qsTr(\"Frame %1/%2\") }",
+                        QUrl(QStringLiteral("file:///View2D.qml")));
+        const std::unique_ptr<QObject> label(overlay.create());
+        REQUIRE(label != nullptr);
+        REQUIRE(label->property("text").toString() == QStringLiteral("Frame %1/%2"));
+
+        WHEN("I choose Portuguese (BR) from the language menu")
+        {
+            menu.setLanguage(QStringLiteral("pt_BR"));
+
+            THEN("the interface strings are shown in Portuguese")
+            {
+                CHECK(label->property("text").toString() == QStringLiteral("Quadro %1/%2"));
+                CHECK(QCoreApplication::translate("StatusBar", "No file open") == QStringLiteral("Nenhum arquivo aberto"));
             }
         }
     }

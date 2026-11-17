@@ -1,31 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 #include <catch2/catch_test_macros.hpp>
 
-#include <QSettings>
-
 #include "AppSettings.h"
-#include "TestSupport.h"
+#include "AppTestSupport.h"
 
 using namespace dv::test;
-
-namespace {
-
-// Points QSettings at a scratch folder so the tests never touch real preferences.
-class IsolatedSettings
-{
-public:
-    IsolatedSettings()
-    {
-        QSettings::setDefaultFormat(QSettings::IniFormat);
-        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope,
-                           QString::fromStdString(m_dir.path().string()));
-    }
-
-private:
-    TempDir m_dir;
-};
-
-} // namespace
 
 TEST_CASE("Options settings start with sensible defaults", "[app][settings]")
 {

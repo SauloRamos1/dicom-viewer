@@ -11,7 +11,9 @@
 #include <functional>
 #include <numeric>
 #include <optional>
+#include <ranges>
 
+#include "ErrorText.h"
 #include "Windowing.h"
 
 static_assert(static_cast<int>(dv::Colormap::Gray) == DicomController::Gray);
@@ -25,6 +27,28 @@ std::filesystem::path toPath(const QString &path)
 {
     const QByteArray utf8 = path.toUtf8();
     return std::filesystem::path(std::u8string(utf8.begin(), utf8.end()));
+}
+
+// Warning entry for the files of a series folder that were left out: how many, and
+// the first few by name with the reason.
+dv::DicomError skippedFilesNotice(const std::vector<dv::SkippedFile> &skipped)
+{
+    constexpr std::size_t kListed = 5;
+    QStringList lines;
+    for (const dv::SkippedFile &file : skipped | std::views::take(kListed)) {
+        const std::u8string name = file.path.filename().u8string();
+        lines << QStringLiteral("%1 - %2").arg(
+            QString::fromUtf8(reinterpret_cast<const char *>(name.data()), static_cast<qsizetype>(name.size())),
+            ErrorText::message(file.error.code));
+    }
+    if (skipped.size() > kListed)
+        lines << DicomController::tr("and %1 more").arg(skipped.size() - kListed);
+    const int count = static_cast<int>(skipped.size());
+    auto notice = dv::makeError(dv::ErrorCode::SkippedFiles,
+                                (DicomController::tr("%n file(s) skipped: ", nullptr, count) + lines.join(QStringLiteral("; ")))
+                                    .toStdString());
+    notice.severity = dv::Severity::Warning;
+    return notice;
 }
 
 // Result of preparing one frame, timed; `image` is null on failure.
@@ -68,6 +92,17 @@ Rendered render(const dv::DicomFile &file, int frame, const dv::RenderParams &pa
 }
 
 constexpr size_t kSampleWindow = 10;
+
+// A number as short as it reads: whole values without decimals, at most `decimals` otherwise.
+QString shortNumber(double value, int decimals = 2)
+{
+    QString text = QString::number(value, 'f', decimals);
+    while (text.endsWith(QLatin1Char('0')))
+        text.chop(1);
+    if (text.endsWith(QLatin1Char('.')))
+        text.chop(1);
+    return text == QLatin1String("-0") ? QStringLiteral("0") : text;
+}
 
 // Rec. 601 luma of interleaved RGB8.
 std::vector<std::uint8_t> lumaOf(const std::vector<std::uint8_t> &rgb)
@@ -130,6 +165,57 @@ QString DicomController::transferSyntax() const
 {
     const std::string &name = m_info.transferSyntaxName.empty() ? m_info.transferSyntaxUid : m_info.transferSyntaxName;
     return QString::fromStdString(name);
+}
+
+QString DicomController::pixelSpacingText() const
+{
+    const auto spacing = dv::physicalPixelSpacing(m_info);
+    if (!spacing)
+        return {};
+    // Keep one decimal for whole values ("1.0"), like the numbers in the file.
+    const auto text = [](double value) {
+        const QString shortest = shortNumber(value, 3);
+        return shortest.contains(QLatin1Char('.')) ? shortest : shortest + QStringLiteral(".0");
+    };
+    return QStringLiteral("%1 x %2 mm").arg(text((*spacing)[0]), text((*spacing)[1]));
+}
+
+QVariantMap DicomController::pixelAt(const QPointF &screen, const QSizeF &viewport, double zoom, const QPointF &pan) const
+{
+    if (!m_file)
+        return {};
+    const auto pixel = dv::screenToPixel({.viewportWidth = viewport.width(),
+                                          .viewportHeight = viewport.height(),
+                                          .columns = m_info.columns,
+                                          .rows = m_info.rows,
+                                          .pixelAspect = pixelAspect(),
+                                          .transform = m_view,
+                                          .zoom = zoom,
+                                          .panX = pan.x(),
+                                          .panY = pan.y()},
+                                         screen.x(), screen.y());
+    if (!pixel)
+        return {};
+
+    QString text;
+    if (m_info.isMonochrome()) {
+        const FrameSource source = frameSource(m_frame);
+        const auto value = source.file->valueAt(pixel->x, pixel->y, source.frame);
+        if (!value)
+            return {};
+        text = shortNumber(static_cast<double>(*value));
+        if (m_info.modality == "CT")
+            text += QStringLiteral(" HU");
+    } else {
+        // The shown 8-bit RGB frame; invert is undone so the values are the image's own.
+        const QImage image = m_store->get();
+        if (image.format() != QImage::Format_RGB888 || pixel->x >= image.width() || pixel->y >= image.height())
+            return {};
+        const uchar *rgb = image.constScanLine(pixel->y) + 3 * pixel->x;
+        const auto channel = [this, rgb](int i) { return m_invert ? 255 - rgb[i] : static_cast<int>(rgb[i]); };
+        text = QStringLiteral("R %1  G %2  B %3").arg(channel(0)).arg(channel(1)).arg(channel(2));
+    }
+    return {{QStringLiteral("x"), pixel->x}, {QStringLiteral("y"), pixel->y}, {QStringLiteral("text"), text}};
 }
 
 void DicomController::setFrame(int frame)
@@ -256,13 +342,26 @@ void DicomController::openSeries(const QUrl &folder)
 }
 
 // Window, first frame and metadata of a loaded file; fills result.file on success.
-void DicomController::prepareFirstFrame(LoadResult &result, std::shared_ptr<const dv::DicomFile> file, bool useGpu)
+// `gpuCapable`: whether the shader path can render every frame of the load (a series
+// needs its slices to agree, see dv::gpuSupported(span)).
+// `volumeWindow`: the window of the whole volume, used when the file names none (the
+// Min-Max of one slice of a series can be all air).
+void DicomController::prepareFirstFrame(LoadResult &result, std::shared_ptr<const dv::DicomFile> file, bool useGpu,
+                                        bool gpuCapable, std::optional<dv::Voi> volumeWindow)
 {
     if (file->info().isMonochrome()) {
-        if (auto voi = dv::presetVoi(dv::WindowPreset::FromFile, *file))
+        if (volumeWindow && !file->info().defaultVoi) {
+            result.voi = *volumeWindow;
+        } else {
+            auto voi = dv::presetVoi(dv::WindowPreset::FromFile, *file);
+            if (!voi) {
+                result.error = std::move(voi.error());
+                return;
+            }
             result.voi = *voi;
+        }
     }
-    result.gpuCapable = dv::gpuSupported(*file);
+    result.gpuCapable = gpuCapable;
     result.gpu = useGpu && result.gpuCapable;
     Rendered first = render(*file, 0, {.voi = result.voi}, result.gpu);
     if (first.image.isNull()) {
@@ -276,6 +375,13 @@ void DicomController::prepareFirstFrame(LoadResult &result, std::shared_ptr<cons
         result.hasTags = true;
     }
     result.file = std::move(file);
+}
+
+// Min-Max window over every voxel (the same formula as dv::WindowPreset::MinMax).
+static dv::Voi minMaxWindow(const dv::Volume &volume)
+{
+    const auto [lo, hi] = std::ranges::minmax(volume.voxels);
+    return {(static_cast<double>(hi) + lo + 1.0) / 2.0, static_cast<double>(hi) - lo + 1.0};
 }
 
 // Packs `volume` for the GPU (downsampled to the budget, 16-bit) into the result.
@@ -318,13 +424,17 @@ DicomController::LoadResult DicomController::loadFile(quint64 generation, const 
         }
         auto file = std::make_shared<const dv::DicomFile>(*std::move(loaded));
         const dv::ImageInfo &info = file->info();
-        prepareFirstFrame(result, file, useGpu);
-        if (result.file && info.frameCount > 1 && info.isMonochrome()) {
-            if (const auto volume = dv::Volume::fromMultiFrame(*file))
-                attachVolume(result, *volume);
+        std::optional<dv::Volume> volume;
+        if (info.frameCount > 1 && info.isMonochrome()) {
+            if (auto stacked = dv::Volume::fromMultiFrame(*file))
+                volume = *std::move(stacked);
             else
-                result.notices.push_back(volume.error());
+                result.notices.push_back(stacked.error());
         }
+        prepareFirstFrame(result, file, useGpu, dv::gpuSupported(*file),
+                          volume ? std::optional(minMaxWindow(*volume)) : std::nullopt);
+        if (result.file && volume)
+            attachVolume(result, *volume);
     } catch (const std::exception &e) { // out of memory while building the volume
         result = {};
         result.generation = generation;
@@ -351,13 +461,18 @@ DicomController::LoadResult DicomController::loadFolder(quint64 generation, cons
             result.error = std::move(series.error());
             return result;
         }
+        if (!series->skipped.empty())
+            result.notices.push_back(skippedFilesNotice(series->skipped));
+        const bool gpuCapable = dv::gpuSupported(series->slices);
         std::vector<std::shared_ptr<const dv::DicomFile>> slices;
         for (dv::DicomFile &slice : series->slices)
             slices.push_back(std::make_shared<const dv::DicomFile>(std::move(slice)));
-        prepareFirstFrame(result, slices.front(), useGpu);
+        const bool isVolume = slices.size() > 1;
+        prepareFirstFrame(result, slices.front(), useGpu, gpuCapable,
+                          isVolume ? std::optional(minMaxWindow(series->volume)) : std::nullopt);
         if (!result.file)
             return result;
-        if (slices.size() > 1) {
+        if (isVolume) {
             result.slices = std::move(slices);
             attachVolume(result, series->volume);
         } else {

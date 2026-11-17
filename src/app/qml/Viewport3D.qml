@@ -17,7 +17,7 @@ Rectangle {
     property bool wireframe: false
     readonly property bool volumeMode: DicomController.hasVolume
     // Camera distance that frames the footprint (heightmap) or the cube (volume).
-    readonly property real homeDistance: 190
+    readonly property real homeDistance: volumeMode ? 330 : 190
 
     function resetCamera() {
         orbit.position = Qt.vector3d(0, 0, 0)
@@ -27,6 +27,7 @@ Rectangle {
 
     color: Theme.viewportBg
     clip: true
+    onHomeDistanceChanged: resetCamera()
     Component.onCompleted: resetCamera()
 
     View3D {

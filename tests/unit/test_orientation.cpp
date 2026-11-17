@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cmath>
+#include <numbers>
 
 #include "DicomFile.h"
 #include "Orientation.h"
@@ -49,8 +50,8 @@ TEST_CASE("oblique orientation combines letters by significance", "[orientation]
 TEST_CASE("components below the threshold are ignored", "[orientation]")
 {
     // A 5 degree tilt keeps the pure labels.
-    const double s = std::sin(5.0 * M_PI / 180.0);
-    const double c = std::cos(5.0 * M_PI / 180.0);
+    const double s = std::sin(5.0 * std::numbers::pi / 180.0);
+    const double c = std::cos(5.0 * std::numbers::pi / 180.0);
     CHECK(labelsOf({c, s, 0, -s, c, 0}) == OrientationLabels{.left = "R", .right = "L", .top = "A", .bottom = "P"});
 }
 

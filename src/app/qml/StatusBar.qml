@@ -4,8 +4,8 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import DicomViewer
 
-// One line about the open file: name, size, bits, photometric, frames and
-// transfer syntax. The details hide while no image is shown.
+// One line about the open file: name, size, pixel spacing, bits, photometric,
+// frames and transfer syntax. The details hide while no image is shown.
 Rectangle {
     id: root
 
@@ -40,6 +40,11 @@ Rectangle {
         Field {
             visible: DicomController.hasImage
             text: qsTr("%1 x %2").arg(DicomController.columns).arg(DicomController.rows)
+        }
+        Field {
+            visible: DicomController.hasImage && DicomController.pixelSpacingText !== ""
+            text: DicomController.pixelSpacingText
+            Accessible.name: qsTr("Pixel spacing: %1").arg(text)
         }
         Field {
             visible: DicomController.hasImage

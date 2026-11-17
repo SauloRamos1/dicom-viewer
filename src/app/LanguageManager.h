@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 #pragma once
 
+#include <QLocale>
 #include <QObject>
 #include <QString>
 #include <QTranslator>
@@ -23,6 +24,11 @@ public:
     explicit LanguageManager(QQmlEngine *engine, QObject *parent = nullptr);
 
     static LanguageManager *create(QQmlEngine *qmlEngine, QJSEngine *jsEngine);
+
+    // The language to start in: `stored` (the persisted choice) when it is a
+    // supported one, else Portuguese when `system` is a Portuguese locale, else
+    // English. init() passes QLocale::system(); tests pass their own locale.
+    static QString initialLanguage(const QString &stored, const QLocale &system);
 
     QString language() const;
     void setLanguage(const QString &language);

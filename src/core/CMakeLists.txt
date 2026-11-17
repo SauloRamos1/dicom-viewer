@@ -2,6 +2,7 @@
 add_library(dicomcore STATIC
     Codecs.cpp
     Codecs.h
+    CheckedMath.h
     Colormap.cpp
     DicomError.h
     DicomFile.cpp
@@ -16,6 +17,10 @@ add_library(dicomcore STATIC
     Orientation.cpp
     Orientation.h
     PixelData.cpp
+    Text.cpp
+    Text.h
+    ViewGeometry.cpp
+    ViewGeometry.h
     Voi.h
     Volume.cpp
     Volume.h

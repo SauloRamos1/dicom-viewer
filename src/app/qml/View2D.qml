@@ -9,6 +9,11 @@ import DicomViewer
 // (vertical). R / Shift+R rotate right / left and H / V flip (the controller
 // holds that transform); the frame keys and the empty state are ViewerPane's.
 // Zoom is relative to the fitted image (1 = fit, 0.1 = 10%, 20 = 2000%).
+// The image is drawn at its physical proportions: its box is columns x rows
+// stretched by the pixel aspect (non-square pixels), then fitted. While the
+// pointer rests on the image, a readout shows the pixel and its value; the
+// screen-to-pixel mapping is the controller's (it knows rotation, flips and
+// pixel aspect), refreshed at most once per frame.
 Rectangle {
     id: root
 
@@ -16,6 +21,23 @@ Rectangle {
     readonly property real maxZoom: 20
     property bool smoothing: true
     readonly property real zoom: canvas.scale
+    // {x, y, text} of the pixel under the pointer, empty when there is none.
+    property var readout: ({})
+    readonly property bool hasReadout: readout.text !== undefined
+
+    function updateReadout() {
+        if (!DicomController.hasImage || !mouse.containsMouse || mouse.pressedButtons !== Qt.NoButton)
+            readout = ({})
+        else
+            readout = DicomController.pixelAt(Qt.point(mouse.mouseX, mouse.mouseY), Qt.size(width, height),
+                                              canvas.scale, Qt.point(canvas.x, canvas.y))
+    }
+
+    // One update per frame, whatever moved (pointer, zoom, pan, transform, frame).
+    function scheduleReadout() {
+        if (!readoutTimer.running)
+            readoutTimer.start()
+    }
 
     function fit() {
         fitAnimation.stop()
@@ -68,6 +90,24 @@ Rectangle {
         function onLoaded() {
             root.fit()
         }
+        function onHasImageChanged() { root.scheduleReadout() }
+        function onInfoChanged() { root.scheduleReadout() }
+        function onFrameChanged() { root.scheduleReadout() }
+        function onViewTransformChanged() { root.scheduleReadout() }
+    }
+    Connections {
+        target: canvas
+        function onScaleChanged() { root.scheduleReadout() }
+        function onXChanged() { root.scheduleReadout() }
+        function onYChanged() { root.scheduleReadout() }
+    }
+    onWidthChanged: scheduleReadout()
+    onHeightChanged: scheduleReadout()
+    Timer {
+        id: readoutTimer
+
+        interval: 16
+        onTriggered: root.updateReadout()
     }
 
     // GPU path timing: the controller closes a sample at the next frame swap.
@@ -118,21 +158,32 @@ Rectangle {
                 y: (parent.height - height) / 2
                 rotation: DicomController.viewRotation * 90
 
-                // The content differs by render backend, the transform around it does not.
-                // Synchronous like GpuImage's: gpuActive flips right after a new
-                // revision, and an async load would leave a blank frame in between.
-                Image {
-                    anchors.fill: parent
-                    visible: !DicomController.gpuActive
-                    source: DicomController.hasImage ? "image://dicom/" + DicomController.imageRevision : ""
-                    fillMode: Image.PreserveAspectFit
-                    smooth: root.smoothing
-                    cache: false
-                }
-                GpuImage {
-                    anchors.fill: parent
-                    visible: DicomController.gpuActive
-                    smoothing: root.smoothing
+                // The image box: the displayed aspect (pixel aspect included)
+                // fitted into the rotator; the content stretches to fill it.
+                Item {
+                    readonly property real displayAspect: DicomController.rows > 0
+                        ? DicomController.columns * DicomController.pixelAspect / DicomController.rows : 1
+
+                    anchors.centerIn: parent
+                    width: Math.min(parent.width, parent.height * displayAspect)
+                    height: width / displayAspect
+
+                    // The content differs by render backend, the transform around it does not.
+                    // Synchronous like GpuImage's: gpuActive flips right after a new
+                    // revision, and an async load would leave a blank frame in between.
+                    Image {
+                        anchors.fill: parent
+                        visible: !DicomController.gpuActive
+                        source: DicomController.hasImage ? "image://dicom/" + DicomController.imageRevision : ""
+                        fillMode: Image.Stretch
+                        smooth: root.smoothing
+                        cache: false
+                    }
+                    GpuImage {
+                        anchors.fill: parent
+                        visible: DicomController.gpuActive
+                        smoothing: root.smoothing
+                    }
                 }
             }
         }
@@ -162,14 +213,18 @@ Rectangle {
 
         anchors.fill: parent
         enabled: DicomController.hasImage
+        hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: pressedButtons & Qt.LeftButton ? Qt.ClosedHandCursor : Qt.ArrowCursor
+        onContainsMouseChanged: root.scheduleReadout()
+        onPressedButtonsChanged: root.scheduleReadout()
 
         onPressed: event => {
             root.forceActiveFocus()
             last = Qt.point(event.x, event.y)
         }
         onPositionChanged: event => {
+            root.scheduleReadout()
             const dx = event.x - last.x
             const dy = event.y - last.y
             last = Qt.point(event.x, event.y)
@@ -243,11 +298,24 @@ Rectangle {
         opacity: 0.8
     }
     Overlay {
+        id: frameLabel
+
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: 8
         text: qsTr("Frame %1/%2").arg(DicomController.frame + 1).arg(DicomController.frameCount)
         font.pixelSize: 12
         opacity: 0.8
+    }
+    // Pixel under the pointer: position and modality value (HU for CT).
+    Overlay {
+        anchors.right: parent.right
+        anchors.bottom: frameLabel.top
+        anchors.rightMargin: 8
+        text: root.hasReadout ? qsTr("x, y: %1, %2  value: %3").arg(root.readout.x).arg(root.readout.y).arg(root.readout.text) : ""
+        font.pixelSize: 12
+        opacity: 0.8
+        Accessible.role: Accessible.StaticText
+        Accessible.name: text
     }
 }

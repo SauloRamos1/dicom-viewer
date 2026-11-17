@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <expected>
+#include <span>
 #include <vector>
 
 #include "DicomError.h"
@@ -32,12 +33,19 @@ struct GpuParams {
     double slope{1.0};
     double intercept{};
     bool monochrome1{false};
+
+    bool operator==(const GpuParams&) const = default;
 };
 
 // True when the shader can render `file`: a single-sample monochrome image of
-// 8 or 16 allocated bits without a Modality LUT Sequence (which only the CPU
-// path applies). Anything else (colour, 32-bit, ...) uses the CPU path.
+// 8 or 16 allocated bits with the LINEAR VOI function (the default) and without a
+// Modality LUT Sequence (which only the CPU path applies). Anything else (colour,
+// 32-bit, SIGMOID, ...) uses the CPU path.
 [[nodiscard]] bool gpuSupported(const DicomFile& file);
+
+// True when every slice is gpuSupported and they share the shader constants
+// (gpuParams), so one set of uniforms renders them all. False for no slices.
+[[nodiscard]] bool gpuSupported(std::span<const DicomFile> slices);
 
 // Shader constants for `info` (meaningful when the file is gpuSupported).
 [[nodiscard]] GpuParams gpuParams(const ImageInfo& info) noexcept;

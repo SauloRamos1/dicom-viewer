@@ -122,6 +122,37 @@ TEST_CASE("A series folder opens as a volume with its slices as frames", "[app][
     CHECK(volume->bytes.size() == 128 * 128 * 6 * 2);
 }
 
+TEST_CASE("Without a window in the files a volume defaults to its whole value range", "[app][series]")
+{
+    const TempDir dir;
+    const auto paths = writeCtSeries(dir.path(), 4);
+    for (const auto &path : paths) {
+        auto edited = path;
+        edited += ".tmp"; // DCMTK reads the pixel data lazily, so never write over the source
+        const bool flat = path == paths.front(); // a slice of one value: its own Min-Max has no range
+        rewrite(path, edited, [flat](DcmDataset &ds) {
+            ds.findAndDeleteElement(DCM_WindowCenter);
+            ds.findAndDeleteElement(DCM_WindowWidth);
+            if (flat) {
+                std::vector<Uint16> pixels(128 * 128, 100);
+                ds.putAndInsertUint16Array(DCM_PixelData, pixels.data(), pixels.size());
+            }
+        });
+        std::filesystem::rename(edited, path);
+    }
+    DicomController controller;
+    openSeriesAndWait(controller, dir.path());
+
+    REQUIRE(controller.hasVolume());
+    const double lo = controller.volumeValueMin();
+    const double hi = controller.volumeValueMax();
+    CHECK(controller.windowWidth() > 100);
+    CHECK(controller.windowWidth() == Approx(hi - lo + 1.0));
+    CHECK(controller.windowCenter() == Approx((hi + lo + 1.0) / 2.0));
+    // The first slice shown was windowed with it too.
+    CHECK(controller.frameStore()->get() == expectedSlice(paths[0], controller));
+}
+
 TEST_CASE("The volume texture holds the slices in order", "[app][series]")
 {
     const TempDir dir;
@@ -287,6 +318,62 @@ TEST_CASE("A one-slice folder opens as a plain image with an info entry", "[app]
     REQUIRE(controller.errors()->count() == 1);
     CHECK(errorTitle(controller) == ErrorText::message(dv::ErrorCode::SingleSliceSeries));
     CHECK(errorSeverity(controller) == QStringLiteral("info"));
+}
+
+namespace {
+
+// Cuts the pixel data of slice `index` of a writeCtSeries folder short.
+void truncateSlice(const std::filesystem::path &folder, int index)
+{
+    const std::string number = std::to_string(index);
+    const auto path = folder / ("slice_" + std::string(3 - number.size(), '0') + number + ".dcm");
+    rewrite(path, path, [](DcmDataset &ds) {
+        const std::vector<Uint16> few(10);
+        ds.putAndInsertUint16Array(DCM_PixelData, few.data(), few.size());
+    });
+}
+
+QString errorDetail(const DicomController &controller, int row = 0)
+{
+    return controller.errors()->data(controller.errors()->index(row), ErrorModel::DetailRole).toString();
+}
+
+} // namespace
+
+TEST_CASE("A series with a damaged slice loads and lists the skipped file as a warning", "[app][series]")
+{
+    const TempDir dir;
+    writeCtSeries(dir.path(), 3);
+    truncateSlice(dir.path(), 1);
+    DicomController controller;
+
+    openSeriesAndWait(controller, dir.path());
+
+    REQUIRE(controller.hasVolume());
+    CHECK(controller.frameCount() == 2);
+    REQUIRE(controller.errors()->count() == 1);
+    CHECK(errorSeverity(controller) == QStringLiteral("warning"));
+    CHECK(errorTitle(controller) == ErrorText::message(dv::ErrorCode::SkippedFiles));
+    CHECK(errorDetail(controller).startsWith(QStringLiteral("1 file(s) skipped")));
+    CHECK(errorDetail(controller).contains(QStringLiteral("slice_001.dcm - ")));
+}
+
+TEST_CASE("The skipped files notice names a few files and counts the rest", "[app][series]")
+{
+    const TempDir dir;
+    writeCtSeries(dir.path(), 15);
+    for (int i = 1; i < 15; i += 2) // the even slices stay evenly spaced
+        truncateSlice(dir.path(), i);
+    DicomController controller;
+
+    openSeriesAndWait(controller, dir.path());
+
+    REQUIRE(controller.errors()->count() == 1);
+    const QString detail = errorDetail(controller);
+    CHECK(detail.startsWith(QStringLiteral("7 file(s) skipped")));
+    CHECK(detail.contains(QStringLiteral("slice_009.dcm")));
+    CHECK_FALSE(detail.contains(QStringLiteral("slice_011.dcm")));
+    CHECK(detail.contains(QStringLiteral("and 2 more")));
 }
 
 TEST_CASE("A new open abandons a series load in flight", "[app][series]")

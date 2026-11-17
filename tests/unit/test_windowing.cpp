@@ -9,7 +9,10 @@
 #include <cstdint>
 #include <cstdlib>
 
+#include <array>
+
 #include <dcmtk/dcmdata/dcdeftag.h>
+#include <dcmtk/dcmdata/dcsequen.h>
 
 #include "TestSupport.h"
 #include "Windowing.h"
@@ -38,6 +41,74 @@ dv::RenderedImage render(const dv::DicomFile& file, Voi voi, bool invert = false
 }
 
 } // namespace
+
+TEST_CASE("Modality LUT values replace the stored values, in the window and the readout", "[windowing][lut]")
+{
+    const TempDir dir;
+    writeModalityLutImage(dir / "lut.dcm", {0, 1, 0, 1}, {1000, 2000});
+    const auto file = loadOrFail(dir / "lut.dcm");
+
+    const auto values = file.rawModalityValues(0);
+    REQUIRE(values.has_value());
+    CHECK(*values == std::vector<float>{1000, 2000, 1000, 2000});
+    CHECK(file.valueAt(1, 0, 0) == 2000.0F);
+
+    // The default window spans the LUT output: one pixel black, the other white.
+    const auto voi = dv::presetVoi(WindowPreset::MinMax, file);
+    REQUIRE(voi.has_value());
+    CHECK(voi->center == Catch::Approx(1500.5));
+    CHECK(voi->width == Catch::Approx(1001.0));
+    CHECK(render(file, *voi).data == std::vector<std::uint8_t>{0, 255, 0, 255});
+}
+
+TEST_CASE("Modality LUT values agree with DCMTK's own rendering", "[windowing][lut]")
+{
+    const auto isSigned = GENERATE(false, true);
+    const TempDir dir;
+    // Signed data maps -1..2 (first mapped value -1); unsigned maps 1..4.
+    const int first = isSigned ? -1 : 1;
+    writeModalityLutImage(dir / "lut.dcm",
+                          {static_cast<std::uint16_t>(first), static_cast<std::uint16_t>(first + 1),
+                           static_cast<std::uint16_t>(first + 2), static_cast<std::uint16_t>(first + 3),
+                           0 /* below the first mapped value (or inside it, when signed) */},
+                          {1000, 1400, 1700, 2000}, first, isSigned ? 1 : 0);
+    const auto file = loadOrFail(dir / "lut.dcm");
+    const auto values = file.rawModalityValues(0);
+    REQUIRE(values.has_value());
+    const Voi voi{1500, 800};
+    const auto cpu = render(file, voi);
+    REQUIRE(cpu.data.size() == values->size());
+    for (std::size_t i = 0; i < values->size(); ++i) {
+        CAPTURE(i, (*values)[i]);
+        CHECK(std::abs(int{cpu.data[i]} - int{dv::applyWindow((*values)[i], voi)}) <= 1);
+    }
+}
+
+TEST_CASE("a Modality LUT with fewer entries than its descriptor is corrupt", "[windowing][lut][error]")
+{
+    const TempDir dir;
+    writeMonoImage(dir / "a.dcm", {.rows = 1, .columns = 2, .samples = {0, 1}});
+    rewrite(dir / "a.dcm", dir / "b.dcm", [](DcmDataset& ds) {
+        DcmItem* item = nullptr;
+        REQUIRE(ds.findOrCreateSequenceItem(DCM_ModalityLUTSequence, item, 0).good());
+        REQUIRE(item->putAndInsertUint16Array(DCM_LUTDescriptor, std::array<Uint16, 3>{4, 0, 16}.data(), 3).good());
+        REQUIRE(item->putAndInsertUint16Array(DCM_LUTData, std::array<Uint16, 2>{10, 20}.data(), 2).good());
+    });
+    CHECK(loadOrFail(dir / "b.dcm").rawModalityValues(0).error().code == ErrorCode::CorruptPixelData);
+}
+
+TEST_CASE("MinMax of a 32-bit image comes from DCMTK instead of failing", "[windowing]")
+{
+    const TempDir dir;
+    write32BitImage(dir / "wide.dcm", {0, 1000, 70000, 100000});
+    const auto file = loadOrFail(dir / "wide.dcm");
+    REQUIRE(file.rawModalityValues(0).has_value() == false); // the sample reader is 8/16-bit only
+
+    const auto voi = dv::presetVoi(WindowPreset::MinMax, file);
+    REQUIRE(voi.has_value());
+    CHECK(voi->center == Catch::Approx(50000.5));
+    CHECK(voi->width == Catch::Approx(100001.0));
+}
 
 TEST_CASE("applyWindow follows the DICOM linear function", "[windowing]")
 {

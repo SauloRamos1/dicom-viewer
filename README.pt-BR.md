@@ -28,7 +28,7 @@ tema claro/escuro, interface em inglês e português do Brasil, renderização p
 
 | Item | Estado |
 |---|---|
-| macOS (Apple Silicon, Apple clang 21, SDK do Xcode, Qt 6.12.0) | Verificado: compilação Release limpa seguindo os passos abaixo, os 190 testes passam, o app abre `tests/data/CT_small.dcm` |
+| macOS (Apple Silicon, Apple clang 21, SDK do Xcode, Qt 6.12.0) | Verificado: compilação Release limpa seguindo os passos abaixo, os 190 testes passaram nessa verificação (a suíte agora tem 252, executada em Debug), o app abre `tests/data/CT_small.dcm` |
 | Windows (MSVC 2022 x64) e Linux (GCC 13) | Configurados no CI e descritos abaixo, **ainda não compilados nem executados** pelo autor |
 | Execução do GitHub Actions, pacotes de release | O workflow está escrito; **nenhuma execução foi conferida e nenhum release foi publicado ainda** |
 | Assinatura de código / notarização | Nenhuma. Os pacotes não são assinados (apenas assinatura ad-hoc no macOS) |
@@ -119,7 +119,7 @@ export CMAKE_PREFIX_PATH="$HOME/Qt/6.12.0/macos"      # kit do Qt do instalador 
 export PATH="$HOME/Qt/Tools/Ninja:$PATH"              # ou: brew install ninja
 cmake --preset release
 cmake --build --preset release
-ctest --preset release                                 # 190 testes, poucos segundos
+ctest --preset release                                 # 252 testes, poucos segundos
 build/release/src/app/appDicomViewer.app/Contents/MacOS/appDicomViewer tests/data/CT_small.dcm
 ```
 
@@ -227,6 +227,7 @@ Tabela completa com as origens: [docs/SOUP.md](docs/SOUP.md).
 | Roda do mouse / rolagem do trackpad | Zoom em torno do cursor |
 | Arrastar com o botão esquerdo | Deslocar a imagem |
 | Arrastar com o botão direito | Largura da janela (horizontal) e nível (vertical), só em tons de cinza |
+| Passar o mouse | Leitura no canto inferior direito: pixel `x, y` e seu valor (HU em CT, valor da modalidade nos demais, `R G B` em imagens coloridas); oculta fora da imagem e durante arrastes |
 | Clique duplo | Ajustar à janela |
 | `R` / `Shift+R` | Girar 90 graus para a direita / esquerda (as letras de orientação acompanham) |
 | `H` / `V` | Espelhar na horizontal / vertical |
@@ -272,7 +273,11 @@ A decodificação e o fluxo de tons de cinza ficam a cargo do `DicomImage` do DC
    função linear do DICOM; o resultado de 8 bits vai para a tela. Um arquivo sem tags de janela usa Mín-Máx.
 4. **Interpretação fotométrica**: MONOCHROME1 é mostrado invertido em relação ao MONOCHROME2 (mínimo = branco);
    RGB, YBR_FULL e YBR_FULL_422 são convertidos para RGB pelo DCMTK; o botão "Inverter" do usuário vale por cima.
-5. **Geometria**: a imagem é desenhada com colunas x linhas, ajustada à área mantendo a proporção. As **letras de
+5. **Geometria**: a imagem é desenhada nas suas proporções físicas: colunas x linhas, esticada pela proporção
+   do pixel (espaçamento de coluna / espaçamento de linha de Pixel Spacing, senão Imager Pixel Spacing, senão
+   Pixel Aspect Ratio, senão 1), e então ajustada à área; o zoom continua relativo ao ajuste. A barra de status
+   mostra o espaçamento em mm. A leitura sob o cursor inverte ajuste, zoom, deslocamento, rotação, espelhamentos
+   e proporção do pixel (`src/core/ViewGeometry.cpp`). As **letras de
    orientação** (`src/core/Orientation.cpp`) vêm de Image Orientation Patient (0020,0037): o vetor das linhas
    dá a borda direita, o vetor das colunas a borda inferior; as letras são R/L, A/P, H/F, com letras
    secundárias acima de 0,2 em planos oblíquos. Rotação e espelhamento as atualizam.
@@ -284,8 +289,8 @@ slope/intercept, janela, inversão e mapa de cores; por isso arrastar a janela �
 truncamento do DCMTK. Medido no scene graph real do Metal, a saída em tons de cinza difere do caminho CPU em no
 máximo 1 nível de cinza (onde float32 e double caem de lados diferentes de um inteiro), em alguns níveis onde
 uma mudança de 1 nível cruza uma entrada íngreme do mapa de cores, e algumas linhas isoladas de texels diferem
-com redução por vizinho mais próximo ([docs/PLAN.md](docs/PLAN.md), seção 3). Imagens coloridas, de 32 bits e
-com Modality LUT Sequence usam sempre o caminho CPU, e a seção Renderização avisa. Se o caminho GPU não puder
+com redução por vizinho mais próximo ([docs/PLAN.md](docs/PLAN.md), seção 3). Imagens coloridas, de 32 bits,
+com Modality LUT Sequence ou VOI não linear, e séries com reescalonamento misto, usam sempre o caminho CPU, e a seção Renderização avisa. Se o caminho GPU não puder
 rodar (renderizador por software ou nulo, falha de shader), o controlador volta para a CPU e acrescenta uma
 entrada de informação ao painel de Erros. A escolha é lembrada. Os tempos aparecem no painel Opções; o tempo da
 GPU inclui a espera pelo próximo quadro, então só dá para compará-lo com o da CPU de forma aproximada. Para uma
@@ -303,10 +308,11 @@ tag opcional.
 | `NotDicom` | O DCMTK não consegue interpretar o arquivo (arquivo de texto, bytes aleatórios, arquivo truncado) |
 | `NoPixelData` | DICOM válido sem Pixel Data (7FE0,0010): os metadados são exibidos, sem imagem |
 | `UnsupportedTransferSyntax` | JPEG 2000, Deflated ou outra sintaxe que esta compilação não decodifica |
-| `UnsupportedPhotometric`, `CorruptPixelData`, `DecodeFailed` | A imagem não pode ser montada ou decodificada |
-| `VolumeInconsistent`, `FrameOutOfRange` | Cortes da série com tamanho ou geometria diferentes; índice de quadro inválido |
+| `UnsupportedPhotometric`, `UnsupportedPixelFormat`, `CorruptPixelData`, `DecodeFailed` | A imagem não pode ser montada ou decodificada (`UnsupportedPixelFormat`: BitsAllocated diferente de 8, 16 ou 32, por exemplo 1 bit) |
+| `VolumeInconsistent`, `VolumeTooLarge`, `FrameOutOfRange` | Cortes da série com tamanho, orientação ou espaçamento de pixel diferentes, ou sem espaçamento uniforme; o volume precisaria de mais de 2 GiB; índice de quadro inválido |
 | `NoDicomFiles` | Uma pasta de série sem nada que abra como imagem DICOM |
 | `GpuUnavailable`, `SingleSliceSeries` | Avisos informativos, não falhas |
+| `SkippedFiles` | Alerta: imagens danificadas de uma pasta de série foram deixadas de fora (as primeiras são nomeadas) |
 
 Na interface, cada código vira uma mensagem traduzida mais o detalhe técnico, mostrados no **painel de Erros**
 (lado direito, `Ctrl+E`, com contador). Antes de abrir qualquer arquivo, o painel lista erros de exemplo
@@ -328,13 +334,17 @@ obsoleto qualquer carregamento ainda em andamento.
 
 Outras limitações conhecidas:
 
-- Imagens coloridas, de 32 bits e Modality LUT Sequence são renderizadas apenas no caminho CPU.
-- O Pixel Spacing é usado na proporção dos voxels do 3D, mas **não** corrige pixels não quadrados na visão 2D;
-  a imagem 2D é desenhada com colunas x linhas.
-- Sem conversão de conjunto de caracteres para UTF-8: textos em Specific Character Sets não ASCII podem aparecer
-  errados no painel de metadados.
-- Não há leitura do valor do pixel ou HU sob o cursor.
-- O carregamento de séries mantém cortes monocromáticos de quadro único do Series Instance UID mais comum. Um
+- Imagens coloridas, de 32 bits, com Modality LUT Sequence, com as funções VOI SIGMOID e LINEAR_EXACT e séries
+  cujos cortes diferem em reescalonamento, sinal ou polaridade são renderizadas apenas no caminho CPU.
+- Pixels não quadrados são corrigidos apenas na visão 2D; o mapa de altura 3D é construído sobre a grade da imagem.
+- O texto é convertido para UTF-8 apenas para ISO_IR 100 (Latin-1), ISO_IR 192 (UTF-8) e ASCII. Outros Specific
+  Character Sets (cirílico, grego, japonês, ...) aparecem como UTF-8 quando já são válidos e como Latin-1 caso
+  contrário, então nunca corrompem a tela, mas acentos ou letras podem sair errados; só o primeiro valor de um
+  Specific Character Set com vários valores é usado e sequências de escape ISO 2022 não são interpretadas.
+- A leitura sob o cursor mostra valores da modalidade (Rescale Slope/Intercept, ou a Modality LUT quando o
+  arquivo tem uma; só 8 e 16 bits) e, em imagens coloridas, os valores RGB de 8 bits exibidos; só existe no 2D.
+- O carregamento de séries mantém cortes monocromáticos de quadro único do Series Instance UID mais comum e exige uma
+  única orientação, um único espaçamento de pixel e posições de corte distintas e uniformemente espaçadas (caso contrário, `VolumeInconsistent`). Um
   volume é limitado a 128 MB e 2048 voxels por lado, por média de blocos; o painel Opções mostra o fator.
 - Não é um cliente PACS: sem DICOMDIR, rede, anotações, medições ou reformatação multiplanar.
 
@@ -363,7 +373,7 @@ Os fontes da cola com o Qt são compilados duas vezes, a partir dos mesmos arqui
 ## Testes
 
 ```sh
-ctest --preset release                                    # os 190 testes (dois executáveis Catch2)
+ctest --preset release                                    # todos os testes (três executáveis Catch2)
 build/release/tests/dicomcore_tests                       # testes unitários do núcleo e cenários BDD do núcleo
 build/release/tests/dicomapp_tests                        # controlador, modelos, provedor de imagem, dados 3D
 build/release/tests/dicomcore_tests "[!benchmark][gpu]"   # benchmark render na CPU x empacotamento para GPU (use build release)
@@ -374,15 +384,18 @@ build/release/tests/dicomcore_tests "[!benchmark][gpu]"   # benchmark render na 
   data, rejeição de JPEG 2000 e Deflated, inversão de MONOCHROME1, pixels RGB/YBR, cálculo da janela,
   slope/intercept para HU, metadados, letras de orientação, montagem de volume e série, mapa de altura,
   empacotamento de textura para GPU comparado com a matemática do shader, estado do controlador, modelos,
-  configurações, fallback de GPU.
+  configurações, troca de idioma, fallback de GPU.
 - **Cenários BDD** ([tests/features](tests/features), passos em [tests/bdd](tests/bdd)): os arquivos `.feature`
   são a especificação legível; cada cenário é espelhado à mão como um bloco `SCENARIO` / `GIVEN` / `WHEN` /
-  `THEN` do Catch2 (nenhum executor Gherkin os interpreta). Um cenário, "Switch language", está marcado como
-  `@pending` e não tem teste.
+  `THEN` do Catch2 (nenhum executor Gherkin os interpreta).
 - Fixtures inválidas (vazio, bytes aleatórios, truncado, sem pixel data, MONOCHROME1, séries) são geradas em
   tempo de execução; as fixtures válidas estão em [tests/data](tests/data).
-- **Não coberto por testes automatizados:** os próprios arquivos QML (layout, animações, diálogos). Foram
-  verificados durante o desenvolvimento com um harness de capturas de tela que controla a janela real, o qual
+- **Teste de fumaça do QML** ([tests/qml](tests/qml), `dicomapp_qml_tests`): carrega o `Main` / `MainView`
+  reais do módulo QML na plataforma offscreen, abre um arquivo e uma série, alterna os painéis de Metadados e
+  Erros, o painel Opções e a visão 3D, troca tema e idioma, e falha diante de qualquer aviso ou erro do QML
+  (apenas os avisos da plataforma offscreen e "o Qt Quick 3D não renderiza sem RHI" são filtrados).
+- **Não coberto por testes automatizados:** a aparência da interface (layout, animações, diálogos). Foi
+  verificada durante o desenvolvimento com um harness de capturas de tela que controla a janela real, o qual
   não está no repositório.
 
 ## Empacotamento e CI

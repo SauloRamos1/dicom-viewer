@@ -39,7 +39,7 @@ OptionsSection {
         Layout.fillWidth: true
         visible: DicomController.hasImage && DicomController.gpuAvailable
             && DicomController.renderBackend === DicomController.Gpu && !DicomController.gpuCapable
-        text: qsTr("Rendered on the CPU: the GPU path handles 8 and 16-bit grayscale only.")
+        text: qsTr("Rendered on the CPU: the GPU path handles 8 and 16-bit grayscale with a linear window, one rescale per series and no Modality LUT.")
         color: Theme.textMuted
         font.pixelSize: 12
         wrapMode: Text.Wrap

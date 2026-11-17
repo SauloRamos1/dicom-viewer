@@ -9,6 +9,9 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <functional>
+#include <span>
+#include <utility>
 
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcsequen.h>
@@ -30,6 +33,13 @@ dv::DicomFile loadOrFail(const std::filesystem::path& path)
     auto file = dv::DicomFile::load(path);
     REQUIRE(file.has_value());
     return *std::move(file);
+}
+
+dv::RenderedImage render(const dv::DicomFile& file, Voi voi)
+{
+    auto image = dv::renderFrame(file, 0, {.voi = voi});
+    REQUIRE(image.has_value());
+    return *std::move(image);
 }
 
 dv::PackedFrame packOrFail(const dv::DicomFile& file, int frame = 0)
@@ -155,6 +165,50 @@ TEST_CASE("only 8 and 16 bit single-sample monochrome images are GPU capable", "
     const auto withLut = loadOrFail(dir / "lut.dcm");
     CHECK_FALSE(dv::gpuSupported(withLut)); // only DicomImage applies a Modality LUT
     CHECK(dv::packFrame(withLut, 0).error().code == ErrorCode::UnsupportedPhotometric);
+}
+
+TEST_CASE("only the LINEAR VOI function the shader implements is GPU capable", "[gpu][pack]")
+{
+    const TempDir dir;
+    const auto fileWith = [&](const char* function) {
+        const auto path = dir / (std::string(function) + ".dcm");
+        rewrite(dataFile("MR_small.dcm"), path, [&](DcmDataset& ds) {
+            if (*function != '\0')
+                REQUIRE(ds.putAndInsertString(DCM_VOILUTFunction, function).good());
+        });
+        return loadOrFail(path);
+    };
+    CHECK(dv::gpuSupported(fileWith("")));
+    CHECK(dv::gpuSupported(fileWith("LINEAR")));
+    CHECK_FALSE(dv::gpuSupported(fileWith("LINEAR_EXACT"))); // PS3.3 C.11.2.1.3.2 differs from the shader's formula
+    CHECK_FALSE(dv::gpuSupported(fileWith("SIGMOID")));
+
+    // Why: DCMTK honours the function on the CPU path, so the two backends would show different contrast.
+    const Voi voi{*fileWith("").info().defaultVoi};
+    CHECK(render(fileWith("SIGMOID"), voi).data != render(fileWith(""), voi).data);
+}
+
+TEST_CASE("a series is GPU capable only when its slices share the shader constants", "[gpu][pack]")
+{
+    const TempDir dir;
+    const auto paths = writeCtSeries(dir.path(), 3);
+    std::vector<dv::DicomFile> slices;
+    for (const auto& path : paths)
+        slices.push_back(loadOrFail(path));
+    CHECK(dv::gpuSupported(slices));
+
+    for (const auto& [name, edit] : std::vector<std::pair<const char*, std::function<void(DcmDataset&)>>>{
+             {"intercept", [](DcmDataset& ds) { ds.putAndInsertString(DCM_RescaleIntercept, "-1000"); }},
+             {"slope", [](DcmDataset& ds) { ds.putAndInsertString(DCM_RescaleSlope, "2"); }},
+             {"polarity", [](DcmDataset& ds) { ds.putAndInsertString(DCM_PhotometricInterpretation, "MONOCHROME1"); }},
+             {"signedness", [](DcmDataset& ds) { ds.putAndInsertUint16(DCM_PixelRepresentation, 0); }}}) {
+        CAPTURE(name);
+        rewrite(paths[1], dir / "odd.dcm", edit);
+        auto odd = slices;
+        odd[1] = loadOrFail(dir / "odd.dcm");
+        CHECK_FALSE(dv::gpuSupported(odd));
+    }
+    CHECK_FALSE(dv::gpuSupported(std::span<const dv::DicomFile>{}));
 }
 
 TEST_CASE("MONOCHROME1 is flagged for the shader", "[gpu][pack]")
