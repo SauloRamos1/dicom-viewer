@@ -177,8 +177,8 @@
     </message>
     <message>
         <location filename="../src/app/qml/ErrorsPanel.qml" line="117"/>
-        <source>Preview</source>
-        <translation>Prévia</translation>
+        <source>Example</source>
+        <translation>Exemplo</translation>
     </message>
     <message>
         <location filename="../src/app/qml/ErrorsPanel.qml" line="163"/>

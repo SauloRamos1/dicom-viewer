@@ -838,28 +838,30 @@ DicomController::MeshResult DicomController::buildMesh(const FrameSource &source
         out.error = std::move(error);
         return std::move(out);
     };
-    const auto plain = dv::renderFrame(*source.file, source.frame, {.voi = params.voi});
-    if (!plain)
-        return fail(plain.error());
-    const bool recolour = params.invert || params.colormap != dv::Colormap::Gray;
-    std::optional<dv::RenderedImage> shown;
-    if (recolour) {
-        auto rendered = dv::renderFrame(*source.file, source.frame, params);
-        if (!rendered)
-            return fail(std::move(rendered.error()));
-        shown = *std::move(rendered);
+    try {
+        const auto plain = dv::renderFrame(*source.file, source.frame, {.voi = params.voi});
+        if (!plain)
+            return fail(plain.error());
+        const bool recolour = params.invert || params.colormap != dv::Colormap::Gray;
+        std::optional<dv::RenderedImage> shown;
+        if (recolour) { // style the decoded frame instead of decoding it again
+            shown = *plain;
+            dv::stylize(*shown, params);
+        }
+        const dv::RenderedImage &colour = shown ? *shown : *plain;
+        const std::vector<std::uint8_t> levels = plain->channels == 1 ? plain->data : lumaOf(plain->data);
+        std::vector<std::uint8_t> rgb;
+        if (colour.channels == 3)
+            rgb = colour.data;
+        else if (recolour)
+            rgb = grayToRgb(colour.data);
+        auto mesh = std::make_shared<dv::HeightmapMesh>(dv::buildHeightmap(plain->width, plain->height, levels, rgb));
+        if (mesh->vertices.empty())
+            return fail(dv::makeError(dv::ErrorCode::DecodeFailed, "unusable image buffer"));
+        out.mesh = std::move(mesh);
+    } catch (const std::exception &e) { // out of memory on a very large image
+        return fail(dv::makeError(dv::ErrorCode::DecodeFailed, e.what()));
     }
-    const dv::RenderedImage &colour = shown ? *shown : *plain;
-    const std::vector<std::uint8_t> levels = plain->channels == 1 ? plain->data : lumaOf(plain->data);
-    std::vector<std::uint8_t> rgb;
-    if (colour.channels == 3)
-        rgb = colour.data;
-    else if (recolour)
-        rgb = grayToRgb(colour.data);
-    auto mesh = std::make_shared<dv::HeightmapMesh>(dv::buildHeightmap(plain->width, plain->height, levels, rgb));
-    if (mesh->vertices.empty())
-        return fail(dv::makeError(dv::ErrorCode::DecodeFailed, "unusable image buffer"));
-    out.mesh = std::move(mesh);
     return out;
 }
 

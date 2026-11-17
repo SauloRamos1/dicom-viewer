@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
+#include <cstdlib>
+
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
@@ -27,6 +29,10 @@ int main(int argc, char *argv[])
     // image://dicomraw/<revision> (GPU path), next to the colormap tables of
     // image://dicomlut/<colormap>.
     auto *controller = engine.singletonInstance<DicomController *>("DicomViewer", "DicomController");
+    if (controller == nullptr) {
+        qCritical("The DicomController singleton is not registered in the DicomViewer module");
+        return EXIT_FAILURE;
+    }
     engine.addImageProvider(QStringLiteral("dicom"), new DicomImageProvider(controller->frameStore()));
     engine.addImageProvider(QStringLiteral("dicomraw"), new DicomImageProvider(controller->gpuFrameStore()));
     engine.addImageProvider(QStringLiteral("dicomlut"), new ColormapImageProvider);

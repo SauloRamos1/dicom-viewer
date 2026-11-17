@@ -373,6 +373,21 @@ TEST_CASE("rendered output is identical across equivalent encodings", "[windowin
     }
 }
 
+TEST_CASE("stylize on a windowed frame equals renderFrame with the same style", "[windowing][render]")
+{
+    const auto file = loadOrFail(dataFile("CT_small.dcm"));
+    const Voi voi{40, 400};
+    const bool invert = GENERATE(false, true);
+    const Colormap cmap = GENERATE(Colormap::Gray, Colormap::Bone, Colormap::Jet);
+
+    auto plain = render(file, voi);
+    dv::stylize(plain, {.voi = voi, .invert = invert, .colormap = cmap});
+
+    const auto direct = render(file, voi, invert, cmap);
+    CHECK(plain.channels == direct.channels);
+    CHECK(plain.data == direct.data);
+}
+
 TEST_CASE("renderFrame benchmarks", "[!benchmark]")
 {
     const auto ct = loadOrFail(dataFile("CT_small.dcm"));

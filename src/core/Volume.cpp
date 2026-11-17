@@ -26,18 +26,33 @@ double dot(const Vec3& a, const Vec3& b)
     return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 
+// A spacing from the file is only usable when it is a positive, finite number of
+// millimetres; zero, negative or NaN values would flatten or mirror the volume.
+bool usableSpacing(double value)
+{
+    return std::isfinite(value) && value > 0.0;
+}
+
+double spacingOr(const std::optional<double>& value, double fallback)
+{
+    return value && usableSpacing(*value) ? *value : fallback;
+}
+
 // Millimetres between slices when positions do not tell: DICOM's own spacing
 // attributes, then 1.
 double nominalSliceSpacing(const ImageInfo& info)
 {
-    return info.spacingBetweenSlices.value_or(info.sliceThickness.value_or(1.0));
+    return spacingOr(info.spacingBetweenSlices, spacingOr(info.sliceThickness, 1.0));
 }
 
-// {x (column), y (row), z}: Pixel Spacing is stored as {row, column}.
+// {x (column), y (row), z}: Pixel Spacing is stored as {row, column}; an
+// unusable pair counts as square 1 mm pixels.
 std::array<double, 3> spacingOf(const ImageInfo& info, double z)
 {
     const auto& ps = info.pixelSpacing;
-    return {ps ? (*ps)[1] : 1.0, ps ? (*ps)[0] : 1.0, z};
+    if (!ps || !usableSpacing((*ps)[0]) || !usableSpacing((*ps)[1]))
+        return {1.0, 1.0, z};
+    return {(*ps)[1], (*ps)[0], z};
 }
 
 // Direction cosines and pixel spacing are compared at these absolute tolerances;
@@ -151,6 +166,9 @@ std::expected<Volume, DicomError> Volume::fromMultiFrame(const DicomFile& file)
                       .height = info.rows,
                       .depth = info.frameCount,
                       .spacing = spacingOf(info, nominalSliceSpacing(info))};
+        // checkVolumeSize above bounds this product.
+        volume.voxels.reserve(static_cast<std::size_t>(info.columns) * static_cast<std::size_t>(info.rows)
+                              * static_cast<std::size_t>(info.frameCount));
         for (int frame = 0; frame < info.frameCount; ++frame) {
             auto values = file.rawModalityValues(frame);
             if (!values)

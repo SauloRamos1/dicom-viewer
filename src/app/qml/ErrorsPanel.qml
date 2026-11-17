@@ -4,7 +4,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import DicomViewer
 
-// Error cards: sample errors flagged "Preview" at startup, the real errors of
+// Error cards: sample errors flagged "Example" at startup, the real errors of
 // a failed load afterwards.
 ColumnLayout {
     id: root
@@ -114,7 +114,7 @@ ColumnLayout {
                                 Label {
                                     id: chipLabel
                                     anchors.centerIn: parent
-                                    text: qsTr("Preview")
+                                    text: qsTr("Example")
                                     color: Theme.accent
                                     font.pixelSize: 10
                                     font.weight: Font.DemiBold

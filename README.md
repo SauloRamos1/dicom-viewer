@@ -27,7 +27,7 @@ Brazilian Portuguese UI, a GPU rendering path, and a 3D heightmap/volume view.
 
 | Item | State |
 |---|---|
-| macOS (Apple Silicon, Apple clang 21, Xcode SDK, Qt 6.12.0) | Verified: clean Release build from the steps below, all 190 tests passed at that check (the suite now has 252, run in Debug), the app starts on `tests/data/CT_small.dcm` |
+| macOS (Apple Silicon, Apple clang 21, Xcode SDK, Qt 6.12.0) | Verified: clean Release build from the steps below, all 256 tests pass in Debug, the app starts on `tests/data/CT_small.dcm` |
 | Windows (MSVC 2022 x64) and Linux (GCC 13) | Configured in CI and described below, **not yet built or run** by the author |
 | GitHub Actions run, release packages | The workflow is written; **no run has been checked and no release has been published yet** |
 | Code signing / notarization | None. Packages are unsigned (macOS ad-hoc only) |
@@ -116,7 +116,7 @@ export CMAKE_PREFIX_PATH="$HOME/Qt/6.12.0/macos"      # Qt kit from the official
 export PATH="$HOME/Qt/Tools/Ninja:$PATH"              # or: brew install ninja
 cmake --preset release
 cmake --build --preset release
-ctest --preset release                                 # 252 tests, a few seconds
+ctest --preset release                                 # 256 tests, a few seconds
 build/release/src/app/appDicomViewer.app/Contents/MacOS/appDicomViewer tests/data/CT_small.dcm
 ```
 
@@ -309,7 +309,7 @@ code, a severity, a short message, a technical detail (the DCMTK `OFCondition` t
 
 In the UI each code maps to a translated message plus the technical detail, shown in the **Errors panel**
 (right side, `Ctrl+E`, with a count badge). Before any file is opened the panel lists sample errors marked
-"preview". A failed load replaces them with the real error, opens the panel, and
+"Example", which the badge does not count. A failed load replaces them with the real error, opens the panel, and
 **keeps the previously opened image, metadata and window untouched**; a successful load clears the list.
 Loading and rendering run on worker threads. Starting a new load, or New, makes any load still in flight
 obsolete.

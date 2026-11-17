@@ -31,7 +31,7 @@ Item {
         TopBar {
             id: topBar
             Layout.fillWidth: true
-            errorCount: DicomController.errors.count
+            errorCount: DicomController.errors.errorCount
             onToggleTheme: AppSettings.theme = Theme.dark ? "light" : "dark"
             onNewRequested: DicomController.reset()
             onOpenRequested: fileDialog.open()

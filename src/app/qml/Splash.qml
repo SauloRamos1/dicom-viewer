@@ -25,6 +25,9 @@ Window {
     readonly property var primaryScreen: Application.screens[0]
     x: primaryScreen ? primaryScreen.virtualX + (primaryScreen.width - width) / 2 : 0
     y: primaryScreen ? primaryScreen.virtualY + (primaryScreen.height - height) / 2 : 0
+    // Declared inside the main window, but it must show before that one does: a
+    // child window would wait for its transient parent to become visible.
+    transientParent: null
     flags: Qt.SplashScreen | Qt.FramelessWindowHint
     color: "transparent"
 

@@ -61,6 +61,11 @@ struct ValueRange {
 // 256-entry color table for a colormap (Gray is the identity).
 [[nodiscard]] const ColorLut& colormapLut(Colormap colormap);
 
+// Applies `params.invert` (always) and then `params.colormap` (monochrome only,
+// which makes the image 3-channel) to an already windowed image, in place. Lets a
+// caller that needs both the plain and the styled image decode only once.
+void stylize(RenderedImage& image, const RenderParams& params);
+
 // Renders one frame to 8 bits using DCMTK for the modality LUT, MONOCHROME1
 // handling and RGB/YBR/palette conversion. For monochrome images the VOI
 // window, optional invert and colormap are applied (a colormap makes the

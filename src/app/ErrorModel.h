@@ -19,6 +19,8 @@ class ErrorModel : public QAbstractListModel
     QML_ELEMENT
     QML_UNCREATABLE("Owned by DicomController")
     Q_PROPERTY(int count READ count NOTIFY countChanged)
+    // Real errors only: the example entries shown at startup do not count.
+    Q_PROPERTY(int errorCount READ errorCount NOTIFY countChanged)
 
 public:
     enum Role {
@@ -36,6 +38,7 @@ public:
     QVariant data(const QModelIndex &index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
     int count() const { return rowCount(); }
+    int errorCount() const;
 
     // Replaces the content with sample errors flagged as preview.
     Q_INVOKABLE void setPreviewSamples();

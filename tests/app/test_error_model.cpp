@@ -18,6 +18,7 @@ TEST_CASE("ErrorModel starts with preview samples", "[app][errors]")
 {
     const ErrorModel model;
     REQUIRE(model.count() == 3);
+    CHECK(model.errorCount() == 0); // examples are not errors: no badge on the Errors button
     for (int row = 0; row < model.rowCount(); ++row) {
         CHECK(value(model, row, ErrorModel::PreviewRole).toBool());
         CHECK_FALSE(value(model, row, ErrorModel::TitleRole).toString().isEmpty());
@@ -61,6 +62,24 @@ TEST_CASE("ErrorModel returns to the preview samples", "[app][errors]")
 
     CHECK(model.count() == 3);
     CHECK(value(model, 2, ErrorModel::PreviewRole).toBool());
+}
+
+TEST_CASE("ErrorModel counts real errors only and notifies when examples become errors", "[app][errors]")
+{
+    ErrorModel model;
+    int countChanges = 0;
+    QObject::connect(&model, &ErrorModel::countChanged, [&] { ++countChanges; });
+
+    // Three examples replaced by three real errors: same row count, new error count.
+    const auto error = dv::makeError(dv::ErrorCode::NotDicom);
+    model.replaceWith({error, error, error});
+    CHECK(model.count() == 3);
+    CHECK(model.errorCount() == 3);
+    CHECK(countChanges == 1);
+
+    model.setPreviewSamples();
+    CHECK(model.errorCount() == 0);
+    CHECK(countChanges == 2);
 }
 
 TEST_CASE("ErrorModel ignores invalid indexes", "[app][errors]")

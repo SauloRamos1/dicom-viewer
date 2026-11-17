@@ -126,6 +126,13 @@ TEST_CASE("The QML interface runs without warnings through the main interactions
     auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().constFirst());
     REQUIRE(window != nullptr);
 
+    // The splash is a child window of the main one, yet it must be on screen first: a child window
+    // waits for its (invisible) transient parent unless it has none.
+    const auto splashes = window->findChildren<QQuickWindow *>();
+    REQUIRE(splashes.size() == 1);
+    REQUIRE(pumpUntil([&] { return splashes.constFirst()->isVisible(); }, 5000));
+    CHECK_FALSE(window->isVisible());
+
     // Main.qml shows the splash for about 3 s, runs its startup steps, then shows the window.
     REQUIRE(pumpUntil([&] { return window->isVisible() && findItem(window->contentItem(), "TopBar") != nullptr; }, 30000));
     auto *topBar = findItem(window->contentItem(), "TopBar");

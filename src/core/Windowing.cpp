@@ -122,7 +122,8 @@ std::expected<RenderedImage, DicomError> decode(const DicomFile& file, int frame
     return out;
 }
 
-// Invert (always) then colormap (monochrome only), in place.
+} // namespace
+
 void stylize(RenderedImage& image, const RenderParams& params)
 {
     if (params.invert) {
@@ -138,8 +139,6 @@ void stylize(RenderedImage& image, const RenderParams& params)
         image.channels = 3;
     }
 }
-
-} // namespace
 
 std::expected<RenderedImage, DicomError> renderFrame(const DicomFile& file, int frame, const RenderParams& params)
 {

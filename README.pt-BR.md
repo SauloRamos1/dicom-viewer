@@ -28,7 +28,7 @@ tema claro/escuro, interface em inglês e português do Brasil, renderização p
 
 | Item | Estado |
 |---|---|
-| macOS (Apple Silicon, Apple clang 21, SDK do Xcode, Qt 6.12.0) | Verificado: compilação Release limpa seguindo os passos abaixo, os 190 testes passaram nessa verificação (a suíte agora tem 252, executada em Debug), o app abre `tests/data/CT_small.dcm` |
+| macOS (Apple Silicon, Apple clang 21, SDK do Xcode, Qt 6.12.0) | Verificado: compilação Release limpa seguindo os passos abaixo, os 256 testes passam em Debug, o app abre `tests/data/CT_small.dcm` |
 | Windows (MSVC 2022 x64) e Linux (GCC 13) | Configurados no CI e descritos abaixo, **ainda não compilados nem executados** pelo autor |
 | Execução do GitHub Actions, pacotes de release | O workflow está escrito; **nenhuma execução foi conferida e nenhum release foi publicado ainda** |
 | Assinatura de código / notarização | Nenhuma. Os pacotes não são assinados (apenas assinatura ad-hoc no macOS) |
@@ -119,7 +119,7 @@ export CMAKE_PREFIX_PATH="$HOME/Qt/6.12.0/macos"      # kit do Qt do instalador 
 export PATH="$HOME/Qt/Tools/Ninja:$PATH"              # ou: brew install ninja
 cmake --preset release
 cmake --build --preset release
-ctest --preset release                                 # 252 testes, poucos segundos
+ctest --preset release                                 # 256 testes, poucos segundos
 build/release/src/app/appDicomViewer.app/Contents/MacOS/appDicomViewer tests/data/CT_small.dcm
 ```
 
@@ -316,7 +316,7 @@ tag opcional.
 
 Na interface, cada código vira uma mensagem traduzida mais o detalhe técnico, mostrados no **painel de Erros**
 (lado direito, `Ctrl+E`, com contador). Antes de abrir qualquer arquivo, o painel lista erros de exemplo
-marcados como "prévia". Uma abertura que falha troca esses exemplos pelo erro real, abre o painel e
+marcados como "Exemplo", que o contador não inclui. Uma abertura que falha troca esses exemplos pelo erro real, abre o painel e
 **mantém a imagem, os metadados e a janela abertos anteriormente**; uma abertura bem-sucedida limpa a lista.
 O carregamento e a renderização rodam em threads de trabalho. Iniciar um novo carregamento, ou Novo, torna
 obsoleto qualquer carregamento ainda em andamento.

@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include <array>
 #include <atomic>
 #include <initializer_list>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include <dcmtk/dcmdata/dcdeftag.h>
@@ -253,6 +256,25 @@ TEST_CASE("fromMultiFrame stacks the frames in order", "[volume]")
     CHECK(firstVoxel(*volume, 1) == 77.0F - 1024.0F);
     CHECK(volume->spacing[2] == Catch::Approx(5.0));
     CHECK(volume->spacing[1] == Catch::Approx(0.661468));
+}
+
+TEST_CASE("fromMultiFrame replaces unusable spacings with 1 mm", "[volume]")
+{
+    const auto [pixelSpacing, thickness] =
+        GENERATE(std::pair<const char*, const char*>{"0\\0", "0"}, std::pair<const char*, const char*>{"-1\\2", "-3"},
+                 std::pair<const char*, const char*>{"nan\\nan", "nan"});
+    const TempDir dir;
+    rewrite(dataFile("CT_small.dcm"), dir / "bad_spacing.dcm", [&](DcmDataset& ds) {
+        ds.putAndInsertString(DCM_PixelSpacing, pixelSpacing);
+        ds.putAndInsertString(DCM_SliceThickness, thickness);
+        ds.findAndDeleteElement(DCM_SpacingBetweenSlices);
+    });
+
+    const auto file = dv::DicomFile::load(dir / "bad_spacing.dcm");
+    REQUIRE(file.has_value());
+    const auto volume = dv::Volume::fromMultiFrame(*file);
+    REQUIRE(volume.has_value());
+    CHECK(volume->spacing == std::array<double, 3>{1.0, 1.0, 1.0});
 }
 
 TEST_CASE("fromMultiFrame of a single frame is a one-slice volume, color is rejected", "[volume][error]")

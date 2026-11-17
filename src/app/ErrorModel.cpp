@@ -45,6 +45,12 @@ QHash<int, QByteArray> ErrorModel::roleNames() const
     };
 }
 
+int ErrorModel::errorCount() const
+{
+    // Entries are either all examples or all real errors.
+    return !m_entries.empty() && m_entries.front().preview ? 0 : rowCount();
+}
+
 void ErrorModel::setPreviewSamples()
 {
     const auto sample = [](dv::ErrorCode code, dv::Severity severity, const char *tag) {
@@ -103,9 +109,10 @@ bool ErrorModel::eventFilter(QObject *watched, QEvent *event)
 void ErrorModel::setEntries(std::vector<Entry> entries)
 {
     const int before = rowCount();
+    const int errorsBefore = errorCount();
     beginResetModel();
     m_entries = std::move(entries);
     endResetModel();
-    if (rowCount() != before)
+    if (rowCount() != before || errorCount() != errorsBefore)
         emit countChanged();
 }
