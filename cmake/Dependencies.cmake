@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 # Third-party dependencies, fetched at configure time and pinned by tag.
 # FIND_PACKAGE_ARGS makes CMake use an installed copy first when one is found.
 include(FetchContent)

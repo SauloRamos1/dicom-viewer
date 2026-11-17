@@ -1,0 +1,108 @@
+# SPDX-License-Identifier: GPL-3.0-only
+name: Build and package
+on:
+  push:
+    branches: [main, 'feat/**']
+    tags: ['v*']
+  pull_request:
+    branches: [main, 'feat/**']
+permissions:
+  contents: read
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            name: macos-arm64
+            qt-arch: clang_64
+          - os: windows-latest
+            name: windows-x64
+            qt-arch: win64_msvc2022_64
+          - os: ubuntu-24.04
+            name: linux-x86_64
+            qt-arch: linux_gcc_64
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Linux toolchain and platform dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-13 g++-13 ninja-build patchelf libgl1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1 libfuse2t64 xvfb
+          echo 'CC=gcc-13' >> "$GITHUB_ENV"
+          echo 'CXX=g++-13' >> "$GITHUB_ENV"
+      - uses: ilammy/msvc-dev-cmd@v1.13.0
+        if: runner.os == 'Windows'
+        with:
+          arch: x64
+      - uses: jurplel/install-qt-action@v4.5.0
+        with:
+          version: '6.12.0'
+          arch: ${{ matrix.qt-arch }}
+          modules: 'qtquick3d qtshadertools qtquicktimeline'
+          aqtversion: '==3.3.0'
+          cache: true
+          install-deps: false
+      - name: Cache DCMTK FetchContent
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            build/release/_deps/dcmtk-src
+            build/release/_deps/dcmtk-build
+            build/release/_deps/dcmtk-subbuild
+          key: dcmtk-${{ matrix.name }}-qt6.12-release-${{ hashFiles('cmake/Dependencies.cmake', 'CMakeLists.txt') }}
+      - name: Configure
+        run: cmake --preset release
+      - name: Build
+        run: cmake --build --preset release --parallel 3
+      - name: Test
+        run: ctest --preset release
+      - name: Install runtime
+        run: cmake --install build/release --prefix "$RUNNER_TEMP/install" --component Runtime
+      - name: Package
+        run: |
+          mkdir -p dist
+          cpack --config build/release/CPackConfig.cmake -B dist
+      - name: AppImage
+        if: runner.os == 'Linux'
+        run: packaging/linux/build-appimage.sh build/release dist
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: dicom-viewer-${{ matrix.name }}
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*.tar.gz
+            dist/*.AppImage
+          if-no-files-found: error
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          pattern: dicom-viewer-*
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v3.0.4
+        with:
+          files: dist/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true

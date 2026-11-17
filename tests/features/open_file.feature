@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 Feature: Open a DICOM file
   As a user
   I want to open a DICOM file and see it displayed correctly

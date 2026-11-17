@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 // Ray-march volume material, fragment part (Qt Quick 3D CustomMaterial snippet;
 // Vulkan-style GLSL completed and cross-compiled by Qt Quick 3D at run time).
 //

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 // Step definitions for tests/features/open_file.feature (core-level scenarios).
 // The viewer-level ones (DicomController) are in test_open_file_app.cpp; the
 // language scenario stays @pending until the language menu is covered by a test.

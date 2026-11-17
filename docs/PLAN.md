@@ -161,9 +161,11 @@ Agents: Sonnet for implementation/tests per step, Haiku for mechanical work (fon
 ## 8. Packaging and CI
 
 - `qt_generate_deploy_qml_app_script` + `install(SCRIPT ...)`: `cmake --install` runs macdeployqt (macOS), windeployqt (Windows) and Qt's own Linux deploy.
-- CPack: DMG (macOS), ZIP (Windows). Linux: AppImage via linuxdeploy + linuxdeploy-plugin-qt.
-- GitHub Actions matrix (macos-latest, windows-latest, ubuntu-22.04): install Qt 6.12 (aqtinstall), configure, build, `ctest`, package, upload artifacts; on tag `v*` attach packages to a GitHub Release.
-- README links the Release downloads and the build-from-source steps.
+- CPack: DMG (macOS), ZIP (Windows). Linux: AppImage via pinned, checksum-verified linuxdeploy + linuxdeploy-plugin-qt, plus CPack TGZ fallback. Runtime-only component excludes tests and development files.
+- GitHub Actions matrix (macos-latest, windows-latest, ubuntu-24.04): install Qt 6.12 (aqtinstall), configure, build, `ctest`, package, upload artifacts; on tag `v*` attach packages to a GitHub Release.
+- Packaging instructions and runner assumptions live in `packaging/README.md`. User-facing README work remains step 8.
+- Linux uses GCC 13 (C++23 std::expected), glibc 2.39 baseline; macOS arm64 requires 14.4 per Qt. Windows uses MSVC 2022 x64.
+- Release automation is configured; signing/notarization and own-code licensing remain owner TODOs. Quick3D is GPLv3/commercial, correcting the earlier LGPL inventory assumption.
 
 ## 9. Series
 

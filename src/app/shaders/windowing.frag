@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 #version 440
 
 // GPU render path of the 2D view: turns the packed raw frame into the same

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 Feature: View a DICOM image in 3D
   As a user
   I want to see a single image as a relief and a series or multi-frame file as a volume

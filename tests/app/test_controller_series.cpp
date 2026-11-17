@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 // DicomController with series folders, multi-frame volumes and the 3D heightmap.
 
 #include <catch2/catch_approx.hpp>

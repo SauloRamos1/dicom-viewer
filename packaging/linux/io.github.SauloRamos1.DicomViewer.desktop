@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[Desktop Entry]
+Type=Application
+Name=DICOM Viewer
+Comment=Educational DICOM image viewer - not for diagnostic use
+Exec=appDicomViewer %f
+Icon=io.github.SauloRamos1.DicomViewer
+Terminal=false
+Categories=Graphics;MedicalSoftware;
+MimeType=application/dicom;

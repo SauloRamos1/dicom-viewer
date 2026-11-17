@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:c93da728-f901-46ec-a40b-53457726e111",
+  "serialNumber": "urn:uuid:373c2f8e-68d2-4fbb-b210-db832b3dac0d",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-16T22:52:26Z",
+    "timestamp": "2026-11-17T00:52:39Z",
     "tools": {
       "components": [
         {
@@ -17,7 +17,8 @@
       "type": "application",
       "bom-ref": "app",
       "name": "dicom-viewer",
-      "version": "0.1.0"
+      "version": "0.1.0",
+      "licenses": [{"license": {"id": "GPL-3.0-only"}}]
     }
   },
   "components": [
@@ -121,7 +122,7 @@
       "licenses": [
         {
           "license": {
-            "id": "LGPL-3.0-only"
+            "id": "GPL-3.0-only"
           }
         }
       ]
@@ -1024,6 +1025,391 @@
           "content": "0029ebbba17e7c6f081408d433cd28b5d1cfee0eeb4cff509b4d972ffa9daf27"
         }
       ]
+    },
+    {
+      "type": "application",
+      "bom-ref": "BUILD-005",
+      "name": "linuxdeploy",
+      "version": "1-alpha-20251107-1",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/linuxdeploy/linuxdeploy"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "NOASSERTION"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "BUILD-005"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "build"
+        }
+      ]
+    },
+    {
+      "type": "application",
+      "bom-ref": "BUILD-006",
+      "name": "linuxdeploy-plugin-qt",
+      "version": "1-alpha-20250213-1",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/linuxdeploy/linuxdeploy-plugin-qt"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "NOASSERTION"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "BUILD-006"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "build"
+        }
+      ]
+    },
+    {
+      "type": "application",
+      "bom-ref": "BUILD-007",
+      "name": "install-qt-action",
+      "version": "4.5.0",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/jurplel/install-qt-action"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "NOASSERTION"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "BUILD-007"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "build"
+        }
+      ]
+    },
+    {
+      "type": "application",
+      "bom-ref": "BUILD-008",
+      "name": "aqtinstall",
+      "version": "3.3.0",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/miurahr/aqtinstall"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "NOASSERTION"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "BUILD-008"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "build"
+        }
+      ]
+    },
+    {
+      "type": "application",
+      "bom-ref": "BUILD-009",
+      "name": "actions/checkout",
+      "version": "7.0.1",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/actions/checkout"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "NOASSERTION"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "BUILD-009"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "build"
+        }
+      ]
+    },
+    {
+      "type": "application",
+      "bom-ref": "BUILD-010",
+      "name": "actions/cache",
+      "version": "6.1.0",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/actions/cache"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "NOASSERTION"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "BUILD-010"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "build"
+        }
+      ]
+    },
+    {
+      "type": "application",
+      "bom-ref": "BUILD-011",
+      "name": "actions/upload-artifact",
+      "version": "7.0.2",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/actions/upload-artifact"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "NOASSERTION"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "BUILD-011"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "build"
+        }
+      ]
+    },
+    {
+      "type": "application",
+      "bom-ref": "BUILD-012",
+      "name": "actions/download-artifact",
+      "version": "8.0.2",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/actions/download-artifact"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "NOASSERTION"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "BUILD-012"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "build"
+        }
+      ]
+    },
+    {
+      "type": "application",
+      "bom-ref": "BUILD-013",
+      "name": "action-gh-release",
+      "version": "3.0.4",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/softprops/action-gh-release"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "NOASSERTION"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "BUILD-013"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "build"
+        }
+      ]
+    },
+    {
+      "type": "application",
+      "bom-ref": "BUILD-014",
+      "name": "msvc-dev-cmd",
+      "version": "1.13.0",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/ilammy/msvc-dev-cmd"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "NOASSERTION"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "BUILD-014"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "build"
+        }
+      ]
+    },
+    {
+      "type": "application",
+      "bom-ref": "BUILD-015",
+      "name": "patchelf",
+      "scope": "excluded",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/NixOS/patchelf"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "NOASSERTION"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "BUILD-015"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "no"
+        },
+        {
+          "name": "dv:category",
+          "value": "build"
+        }
+      ]
+    },
+    {
+      "type": "framework",
+      "bom-ref": "SOUP-013",
+      "name": "Qt Svg",
+      "version": "6.12.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-3.0-only"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/qt/qtsvg"
+        }
+      ],
+      "properties": [
+        {
+          "name": "dv:soup-id",
+          "value": "SOUP-013"
+        },
+        {
+          "name": "dv:shipped",
+          "value": "yes"
+        },
+        {
+          "name": "dv:category",
+          "value": "runtime"
+        }
+      ]
     }
   ],
   "dependencies": [
@@ -1036,7 +1422,8 @@
         "SOUP-004",
         "SOUP-005",
         "SOUP-006",
-        "SOUP-010"
+        "SOUP-010",
+        "SOUP-013"
       ]
     },
     {
@@ -1063,6 +1450,54 @@
         "DATA-SC_ybr_full_422_uncompressed",
         "DATA-image_dfl"
       ]
+    },
+    {
+      "ref": "BUILD-005",
+      "dependsOn": []
+    },
+    {
+      "ref": "BUILD-006",
+      "dependsOn": []
+    },
+    {
+      "ref": "BUILD-007",
+      "dependsOn": []
+    },
+    {
+      "ref": "BUILD-008",
+      "dependsOn": []
+    },
+    {
+      "ref": "BUILD-009",
+      "dependsOn": []
+    },
+    {
+      "ref": "BUILD-010",
+      "dependsOn": []
+    },
+    {
+      "ref": "BUILD-011",
+      "dependsOn": []
+    },
+    {
+      "ref": "BUILD-012",
+      "dependsOn": []
+    },
+    {
+      "ref": "BUILD-013",
+      "dependsOn": []
+    },
+    {
+      "ref": "BUILD-014",
+      "dependsOn": []
+    },
+    {
+      "ref": "BUILD-015",
+      "dependsOn": []
+    },
+    {
+      "ref": "SOUP-013",
+      "dependsOn": []
     }
   ]
 }

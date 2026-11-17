@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 include(Catch)
 
 # Helpers shared by the unit and BDD tests (fixture paths, temp dirs, DCMTK rewrites).

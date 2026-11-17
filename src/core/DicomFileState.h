@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 #pragma once
 
 // Private to src/core: pulls in DCMTK. Public headers must not include this.

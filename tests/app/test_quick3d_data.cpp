@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 // The Quick3D data providers (heightmap geometry, volume and colormap textures)
 // fed by the controller. They need no render backend: only their data is checked.
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 // Entry point of the Qt glue tests: Catch2 runs inside a QGuiApplication so the
 // controller's worker results can be delivered through the event loop.
 

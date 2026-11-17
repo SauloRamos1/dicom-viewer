@@ -3,9 +3,9 @@
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
   "name": "dicom-viewer",
-  "documentNamespace": "https://example.org/spdx/dicom-viewer/cc79b5a9-c278-4a2e-9535-08d18f4f8825",
+  "documentNamespace": "https://spdx.org/spdxdocs/dicom-viewer-51b21475-2f21-40c5-a807-6d841d19de82",
   "creationInfo": {
-    "created": "2026-11-16T22:52:26Z",
+    "created": "2026-11-17T00:52:39Z",
     "creators": [
       "Tool: manual"
     ]
@@ -17,8 +17,8 @@
       "versionInfo": "0.1.0",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
-      "licenseConcluded": "NOASSERTION",
-      "licenseDeclared": "NOASSERTION",
+      "licenseConcluded": "GPL-3.0-only",
+      "licenseDeclared": "GPL-3.0-only",
       "copyrightText": "NOASSERTION"
     },
     {
@@ -61,7 +61,7 @@
       "downloadLocation": "https://github.com/qt/qtquick3d",
       "filesAnalyzed": false,
       "licenseConcluded": "NOASSERTION",
-      "licenseDeclared": "LGPL-3.0-only",
+      "licenseDeclared": "GPL-3.0-only",
       "copyrightText": "NOASSERTION",
       "externalRefs": [
         {
@@ -555,6 +555,125 @@
           "checksumValue": "0029ebbba17e7c6f081408d433cd28b5d1cfee0eeb4cff509b4d972ffa9daf27"
         }
       ]
+    },
+    {
+      "SPDXID": "SPDXRef-BUILD-005",
+      "name": "linuxdeploy",
+      "versionInfo": "1-alpha-20251107-1",
+      "downloadLocation": "https://github.com/linuxdeploy/linuxdeploy",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "SPDXID": "SPDXRef-BUILD-006",
+      "name": "linuxdeploy-plugin-qt",
+      "versionInfo": "1-alpha-20250213-1",
+      "downloadLocation": "https://github.com/linuxdeploy/linuxdeploy-plugin-qt",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "SPDXID": "SPDXRef-BUILD-007",
+      "name": "install-qt-action",
+      "versionInfo": "4.5.0",
+      "downloadLocation": "https://github.com/jurplel/install-qt-action",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "SPDXID": "SPDXRef-BUILD-008",
+      "name": "aqtinstall",
+      "versionInfo": "3.3.0",
+      "downloadLocation": "https://github.com/miurahr/aqtinstall",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "SPDXID": "SPDXRef-BUILD-009",
+      "name": "actions/checkout",
+      "versionInfo": "7.0.1",
+      "downloadLocation": "https://github.com/actions/checkout",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "SPDXID": "SPDXRef-BUILD-010",
+      "name": "actions/cache",
+      "versionInfo": "6.1.0",
+      "downloadLocation": "https://github.com/actions/cache",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "SPDXID": "SPDXRef-BUILD-011",
+      "name": "actions/upload-artifact",
+      "versionInfo": "7.0.2",
+      "downloadLocation": "https://github.com/actions/upload-artifact",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "SPDXID": "SPDXRef-BUILD-012",
+      "name": "actions/download-artifact",
+      "versionInfo": "8.0.2",
+      "downloadLocation": "https://github.com/actions/download-artifact",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "SPDXID": "SPDXRef-BUILD-013",
+      "name": "action-gh-release",
+      "versionInfo": "3.0.4",
+      "downloadLocation": "https://github.com/softprops/action-gh-release",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "SPDXID": "SPDXRef-BUILD-014",
+      "name": "msvc-dev-cmd",
+      "versionInfo": "1.13.0",
+      "downloadLocation": "https://github.com/ilammy/msvc-dev-cmd",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "SPDXID": "SPDXRef-BUILD-015",
+      "name": "patchelf",
+      "downloadLocation": "https://github.com/NixOS/patchelf",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "SPDXID": "SPDXRef-SOUP-013",
+      "name": "Qt Svg",
+      "versionInfo": "6.12.0",
+      "downloadLocation": "https://github.com/qt/qtsvg",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "LGPL-3.0-only",
+      "copyrightText": "NOASSERTION"
     }
   ],
   "relationships": [
@@ -702,6 +821,66 @@
       "spdxElementId": "SPDXRef-SOUP-012",
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-DATA-image_dfl"
+    },
+    {
+      "spdxElementId": "SPDXRef-BUILD-005",
+      "relationshipType": "BUILD_TOOL_OF",
+      "relatedSpdxElement": "SPDXRef-app"
+    },
+    {
+      "spdxElementId": "SPDXRef-BUILD-006",
+      "relationshipType": "BUILD_TOOL_OF",
+      "relatedSpdxElement": "SPDXRef-app"
+    },
+    {
+      "spdxElementId": "SPDXRef-BUILD-007",
+      "relationshipType": "BUILD_TOOL_OF",
+      "relatedSpdxElement": "SPDXRef-app"
+    },
+    {
+      "spdxElementId": "SPDXRef-BUILD-008",
+      "relationshipType": "BUILD_TOOL_OF",
+      "relatedSpdxElement": "SPDXRef-app"
+    },
+    {
+      "spdxElementId": "SPDXRef-BUILD-009",
+      "relationshipType": "BUILD_TOOL_OF",
+      "relatedSpdxElement": "SPDXRef-app"
+    },
+    {
+      "spdxElementId": "SPDXRef-BUILD-010",
+      "relationshipType": "BUILD_TOOL_OF",
+      "relatedSpdxElement": "SPDXRef-app"
+    },
+    {
+      "spdxElementId": "SPDXRef-BUILD-011",
+      "relationshipType": "BUILD_TOOL_OF",
+      "relatedSpdxElement": "SPDXRef-app"
+    },
+    {
+      "spdxElementId": "SPDXRef-BUILD-012",
+      "relationshipType": "BUILD_TOOL_OF",
+      "relatedSpdxElement": "SPDXRef-app"
+    },
+    {
+      "spdxElementId": "SPDXRef-BUILD-013",
+      "relationshipType": "BUILD_TOOL_OF",
+      "relatedSpdxElement": "SPDXRef-app"
+    },
+    {
+      "spdxElementId": "SPDXRef-BUILD-014",
+      "relationshipType": "BUILD_TOOL_OF",
+      "relatedSpdxElement": "SPDXRef-app"
+    },
+    {
+      "spdxElementId": "SPDXRef-BUILD-015",
+      "relationshipType": "BUILD_TOOL_OF",
+      "relatedSpdxElement": "SPDXRef-app"
+    },
+    {
+      "spdxElementId": "SPDXRef-SOUP-013",
+      "relationshipType": "DEPENDENCY_OF",
+      "relatedSpdxElement": "SPDXRef-app"
     }
   ]
 }

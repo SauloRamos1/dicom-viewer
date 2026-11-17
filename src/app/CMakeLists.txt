@@ -1,4 +1,5 @@
-find_package(Qt6 6.12 REQUIRED COMPONENTS Quick QuickControls2 Quick3D Concurrent LinguistTools ShaderTools)
+# SPDX-License-Identifier: GPL-3.0-only
+find_package(Qt6 6.12 REQUIRED COMPONENTS Quick QuickControls2 Quick3D Concurrent LinguistTools ShaderTools Svg)
 
 qt_standard_project_setup(REQUIRES 6.12)
 
@@ -118,16 +119,27 @@ qt_add_translations(appDicomViewer
     RESOURCE_PREFIX /i18n
 )
 
-# Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
-# If you are developing for iOS or macOS you should consider setting an
-# explicit, fixed bundle identifier manually though.
 set_target_properties(appDicomViewer PROPERTIES
-#    MACOSX_BUNDLE_GUI_IDENTIFIER com.example.appDicomViewer
+    MACOSX_BUNDLE_GUI_IDENTIFIER io.github.SauloRamos1.DicomViewer
+    MACOSX_BUNDLE_BUNDLE_NAME "DICOM Viewer"
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
+    MACOSX_BUNDLE_COPYRIGHT "Copyright (c) 2026 DICOM Viewer contributors; GPL-3.0-only"
+    MACOSX_BUNDLE_INFO_PLIST "${PROJECT_SOURCE_DIR}/packaging/Info.plist.in"
+    MACOSX_BUNDLE_ICON_FILE app.icns
     MACOSX_BUNDLE TRUE
     WIN32_EXECUTABLE TRUE
 )
+if(APPLE)
+    target_sources(appDicomViewer PRIVATE ${PROJECT_SOURCE_DIR}/packaging/icons/app.icns)
+    set_source_files_properties(${PROJECT_SOURCE_DIR}/packaging/icons/app.icns
+        PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+elseif(WIN32)
+    enable_language(RC)
+    configure_file(${PROJECT_SOURCE_DIR}/packaging/windows/app.rc.in
+        ${CMAKE_CURRENT_BINARY_DIR}/app.rc @ONLY)
+    target_sources(appDicomViewer PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/app.rc)
+endif()
 
 target_compile_definitions(appDicomViewer PRIVATE
     DICOMVIEWER_VERSION="${PROJECT_VERSION}"
@@ -138,14 +150,48 @@ target_link_libraries(appDicomViewer
     PRIVATE
         Qt6::Quick
         Qt6::QuickControls2
+        Qt6::Svg # Makes deploy tools include SVG image decoding for app.svg.
         Qt6::Concurrent
         Qt6::Quick3D
         dicomcore
         dicomviewer_warnings
 )
 
+# Use Qt's recommended bin/lib/qml layout outside the macOS bundle.
 install(TARGETS appDicomViewer
-    BUNDLE DESTINATION .
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    BUNDLE DESTINATION . COMPONENT Runtime
+    RUNTIME DESTINATION bin COMPONENT Runtime
 )
+qt_generate_deploy_qml_app_script(
+    TARGET appDicomViewer OUTPUT_SCRIPT deploy_script
+)
+
+if(APPLE)
+    # macdeployqt deploys Cocoa by default. Keep offscreen for package smoke tests.
+    install(FILES $<TARGET_FILE:Qt6::QOffscreenIntegrationPlugin>
+        DESTINATION appDicomViewer.app/Contents/PlugIns/platforms COMPONENT Runtime)
+    set(license_dir "appDicomViewer.app/Contents/Resources/licenses")
+else()
+    set(license_dir "bin/licenses")
+endif()
+install(FILES ${PROJECT_SOURCE_DIR}/LICENSE
+    ${PROJECT_SOURCE_DIR}/packaging/THIRD_PARTY_NOTICES.md
+    ${PROJECT_SOURCE_DIR}/src/app/resources/fonts/LICENSE.txt
+    DESTINATION ${license_dir} COMPONENT Runtime)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/docs/sbom/
+    DESTINATION ${license_dir}/sbom COMPONENT Runtime FILES_MATCHING PATTERN "*.json")
+if(UNIX AND NOT APPLE)
+    install(FILES ${PROJECT_SOURCE_DIR}/packaging/linux/io.github.SauloRamos1.DicomViewer.desktop
+        DESTINATION share/applications COMPONENT Runtime)
+    install(FILES ${PROJECT_SOURCE_DIR}/packaging/linux/io.github.SauloRamos1.DicomViewer.metainfo.xml
+        DESTINATION share/metainfo COMPONENT Runtime)
+    install(FILES ${PROJECT_SOURCE_DIR}/packaging/icons/app-256.png
+        DESTINATION share/icons/hicolor/256x256/apps
+        RENAME io.github.SauloRamos1.DicomViewer.png COMPONENT Runtime)
+    install(FILES ${PROJECT_SOURCE_DIR}/packaging/icons/app-512.png
+        DESTINATION share/icons/hicolor/512x512/apps
+        RENAME io.github.SauloRamos1.DicomViewer.png COMPONENT Runtime)
+endif()
+
+# Deploy/sign after all bundle resources (including notices) are installed.
+install(SCRIPT ${deploy_script} COMPONENT Runtime)

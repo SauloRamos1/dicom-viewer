@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 // Step definitions for tests/features/view_3d.feature, run against DicomController.
 
 #include <catch2/catch_approx.hpp>

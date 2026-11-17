@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 #pragma once
 
 // float32 mirror of src/app/shaders/windowing.frag, the reference the packed

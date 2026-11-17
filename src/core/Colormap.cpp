@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 // Colormap lookup tables, built once from piecewise-linear control points
 // (the same anchors as the matplotlib "bone", "hot" and "jet" maps).
 

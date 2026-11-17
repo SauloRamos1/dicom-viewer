@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 // Ray-march volume material, vertex part (Qt Quick 3D CustomMaterial snippet).
 // The model is the unit cube (#Cube, 100 units, scaled to the voxel aspect); the
 // fragment shader marches from the camera through each fragment, so all this

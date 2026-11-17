@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 // Step definitions for the viewer-level scenarios of tests/features/open_file.feature,
 // run against DicomController (the state behind the UI).
 
