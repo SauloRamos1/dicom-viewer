@@ -33,8 +33,8 @@ example errors, opening a DICOM file, window/level, colormaps and the 3D heightm
 | Item | State |
 |---|---|
 | macOS (Apple Silicon, Apple clang 21, Xcode SDK, Qt 6.12.0) | Verified: clean Release build from the steps below, all 256 tests pass in Debug, the app starts on `tests/data/CT_small.dcm` |
-| Windows (MSVC 2022 x64) and Linux (Ubuntu 24.04, GCC 13) | Built and tested by CI: 256 tests pass and a package is produced on each. **Not run on a desktop** by the author, and the steps below follow CI |
-| GitHub Actions, release packages | Every push builds, tests and packages on macOS, Windows and Linux, and uploads the packages as workflow artifacts. The `release` job (GitHub Release) only runs on a `v*` tag, so **no release has been published yet** |
+| Windows (MSVC 2022 x64) and Linux (Ubuntu 24.04, GCC 13) | Built and tested by CI: 256 tests pass and a package is produced on each |
+| GitHub Actions, release packages | Every push builds, tests and packages on macOS, Windows and Linux, and uploads the packages as workflow artifacts. The `release` job attaches the packages to a GitHub Release on a `v*` tag; [v0.1.0](https://github.com/SauloRamos1/dicom-viewer/releases/tag/v0.1.0) is published |
 | Code signing / notarization | None. Packages are unsigned (macOS ad-hoc only) |
 
 ## Features
@@ -78,9 +78,9 @@ screen is not pictured.
 
 ## Quick start
 
-**Option 1 - release packages.** Once a `v*` tag has been pushed, CI attaches `.dmg` (macOS), `.zip`
-(Windows), `.AppImage` and `.tar.gz` (Linux) to the GitHub Release. None has been published yet (see
-[Status](#status)). The packages are unsigned: on macOS use Finder right-click > Open the first time.
+**Option 1 - release packages.** [Releases](https://github.com/SauloRamos1/dicom-viewer/releases) has a `.dmg`
+(macOS), a `.zip` (Windows), an `.AppImage` and a `.tar.gz` (Linux). The packages are unsigned: on macOS use
+Finder right-click > Open the first time.
 
 **Option 2 - build from source** (details [below](#build-run-and-test)). On macOS with Qt 6.12.0 installed
 in `~/Qt`:
@@ -128,6 +128,34 @@ build/release/src/app/appDicomViewer.app/Contents/MacOS/appDicomViewer tests/dat
 Run without the file argument to start empty and use the Open button. Starting the `.app` with `open` works
 too, but pass an absolute path:
 `open build/release/src/app/appDicomViewer.app --args "$PWD/tests/data/CT_small.dcm"`.
+Linker error or local Qt path? See [macOS: SDK error and local presets](#macos-sdk-error-and-local-presets).
+
+### Linux
+
+```sh
+sudo apt-get install -y gcc-13 g++-13 ninja-build libgl1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0   # plus the other libxcb-* packages listed above
+export CC=gcc-13 CXX=g++-13 CMAKE_PREFIX_PATH="$HOME/Qt/6.12.0/gcc_64"
+cmake --preset release && cmake --build --preset release && ctest --preset release
+build/release/src/app/appDicomViewer tests/data/CT_small.dcm
+```
+
+Over SSH or in CI, run with `QT_QPA_PLATFORM=offscreen` (the 3D view needs a real GPU context and shows
+nothing offscreen).
+
+### Windows
+
+In an "x64 Native Tools Command Prompt for VS 2022" (Ninja comes with Visual Studio's CMake, or from Qt's `Tools`):
+
+```bat
+set CMAKE_PREFIX_PATH=C:\Qt\6.12.0\msvc2022_64
+set PATH=%CMAKE_PREFIX_PATH%\bin;%PATH%
+cmake --preset release
+cmake --build --preset release
+ctest --preset release
+build\release\src\app\appDicomViewer.exe tests\data\CT_small.dcm
+```
+
+### macOS: SDK error and local presets
 
 **Linker error `ld: tapi error: malformed file ... libSystem.tbd`?** CMake picked a broken Command Line Tools
 SDK (seen with a macOS 27 beta). Point CMake at the Xcode SDK once, at configure time:
@@ -161,31 +189,6 @@ cmake --preset release -DCMAKE_OSX_SYSROOT="$(xcrun --sdk macosx --show-sdk-path
 
 ```sh
 cmake --preset local && cmake --build --preset local && ctest --preset local
-```
-
-### Linux (built and tested by CI, not run on a desktop by the author)
-
-```sh
-sudo apt-get install -y gcc-13 g++-13 ninja-build libgl1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0   # plus the other libxcb-* packages listed above
-export CC=gcc-13 CXX=g++-13 CMAKE_PREFIX_PATH="$HOME/Qt/6.12.0/gcc_64"
-cmake --preset release && cmake --build --preset release && ctest --preset release
-build/release/src/app/appDicomViewer tests/data/CT_small.dcm
-```
-
-Over SSH or in CI, run with `QT_QPA_PLATFORM=offscreen` (the 3D view needs a real GPU context and shows
-nothing offscreen).
-
-### Windows (built and tested by CI, not run on a desktop by the author)
-
-In an "x64 Native Tools Command Prompt for VS 2022" (Ninja comes with Visual Studio's CMake, or from Qt's `Tools`):
-
-```bat
-set CMAKE_PREFIX_PATH=C:\Qt\6.12.0\msvc2022_64
-set PATH=%CMAKE_PREFIX_PATH%\bin;%PATH%
-cmake --preset release
-cmake --build --preset release
-ctest --preset release
-build\release\src\app\appDicomViewer.exe tests\data\CT_small.dcm
 ```
 
 ### Notes for every platform

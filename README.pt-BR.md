@@ -35,8 +35,8 @@ aplicativo real.
 | Item | Estado |
 |---|---|
 | macOS (Apple Silicon, Apple clang 21, SDK do Xcode, Qt 6.12.0) | Verificado: compilação Release limpa seguindo os passos abaixo, os 256 testes passam em Debug, o app abre `tests/data/CT_small.dcm` |
-| Windows (MSVC 2022 x64) e Linux (Ubuntu 24.04, GCC 13) | Compilados e testados pelo CI: 256 testes passam e um pacote é gerado em cada um. **Não executados em um desktop** pelo autor, e os passos abaixo seguem o CI |
-| GitHub Actions, pacotes de release | Cada push compila, testa e empacota no macOS, Windows e Linux, e envia os pacotes como artefatos do workflow. O job `release` (GitHub Release) só roda em uma tag `v*`, então **nenhum release foi publicado ainda** |
+| Windows (MSVC 2022 x64) e Linux (Ubuntu 24.04, GCC 13) | Compilados e testados pelo CI: 256 testes passam e um pacote é gerado em cada um |
+| GitHub Actions, pacotes de release | Cada push compila, testa e empacota no macOS, Windows e Linux, e envia os pacotes como artefatos do workflow. O job `release` anexa os pacotes a um GitHub Release em uma tag `v*`; o [v0.1.0](https://github.com/SauloRamos1/dicom-viewer/releases/tag/v0.1.0) está publicado |
 | Assinatura de código / notarização | Nenhuma. Os pacotes não são assinados (apenas assinatura ad-hoc no macOS) |
 
 ## Recursos
@@ -82,9 +82,9 @@ abertura não aparece nas capturas.
 
 ## Início rápido
 
-**Opção 1 - pacotes de release.** Depois que uma tag `v*` for enviada, o CI anexa `.dmg` (macOS), `.zip`
-(Windows), `.AppImage` e `.tar.gz` (Linux) ao Release do GitHub. Nenhum foi publicado ainda (veja a
-[Situação](#situação)). Os pacotes não são assinados: no macOS, use clique direito > Abrir no Finder na primeira vez.
+**Opção 1 - pacotes de release.** A página de [Releases](https://github.com/SauloRamos1/dicom-viewer/releases)
+tem um `.dmg` (macOS), um `.zip` (Windows), um `.AppImage` e um `.tar.gz` (Linux). Os pacotes não são assinados:
+no macOS, use clique direito > Abrir no Finder na primeira vez.
 
 **Opção 2 - compilar a partir do código** (detalhes [abaixo](#compilar-executar-e-testar)). No macOS, com o
 Qt 6.12.0 instalado em `~/Qt`:
@@ -132,6 +132,34 @@ build/release/src/app/appDicomViewer.app/Contents/MacOS/appDicomViewer tests/dat
 Execute sem o argumento de arquivo para começar vazio e usar o botão Abrir. Abrir o `.app` com `open` também
 funciona, mas passe um caminho absoluto:
 `open build/release/src/app/appDicomViewer.app --args "$PWD/tests/data/CT_small.dcm"`.
+Erro de ligação ou caminho local do Qt? Veja [macOS: erro de SDK e presets locais](#macos-erro-de-sdk-e-presets-locais).
+
+### Linux
+
+```sh
+sudo apt-get install -y gcc-13 g++-13 ninja-build libgl1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0   # mais os outros pacotes libxcb-* listados acima
+export CC=gcc-13 CXX=g++-13 CMAKE_PREFIX_PATH="$HOME/Qt/6.12.0/gcc_64"
+cmake --preset release && cmake --build --preset release && ctest --preset release
+build/release/src/app/appDicomViewer tests/data/CT_small.dcm
+```
+
+Por SSH ou no CI, execute com `QT_QPA_PLATFORM=offscreen` (a visão 3D precisa de um contexto de GPU real e não
+mostra nada em modo offscreen).
+
+### Windows
+
+Em um "x64 Native Tools Command Prompt for VS 2022" (o Ninja vem com o CMake do Visual Studio ou em `Tools`, do Qt):
+
+```bat
+set CMAKE_PREFIX_PATH=C:\Qt\6.12.0\msvc2022_64
+set PATH=%CMAKE_PREFIX_PATH%\bin;%PATH%
+cmake --preset release
+cmake --build --preset release
+ctest --preset release
+build\release\src\app\appDicomViewer.exe tests\data\CT_small.dcm
+```
+
+### macOS: erro de SDK e presets locais
 
 **Erro de ligação `ld: tapi error: malformed file ... libSystem.tbd`?** O CMake escolheu um SDK defeituoso das
 Command Line Tools (visto com um macOS 27 beta). Aponte o CMake para o SDK do Xcode uma vez, na configuração:
@@ -165,31 +193,6 @@ cmake --preset release -DCMAKE_OSX_SYSROOT="$(xcrun --sdk macosx --show-sdk-path
 
 ```sh
 cmake --preset local && cmake --build --preset local && ctest --preset local
-```
-
-### Linux (compilado e testado pelo CI, não executado em um desktop pelo autor)
-
-```sh
-sudo apt-get install -y gcc-13 g++-13 ninja-build libgl1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0   # mais os outros pacotes libxcb-* listados acima
-export CC=gcc-13 CXX=g++-13 CMAKE_PREFIX_PATH="$HOME/Qt/6.12.0/gcc_64"
-cmake --preset release && cmake --build --preset release && ctest --preset release
-build/release/src/app/appDicomViewer tests/data/CT_small.dcm
-```
-
-Por SSH ou no CI, execute com `QT_QPA_PLATFORM=offscreen` (a visão 3D precisa de um contexto de GPU real e não
-mostra nada em modo offscreen).
-
-### Windows (compilado e testado pelo CI, não executado em um desktop pelo autor)
-
-Em um "x64 Native Tools Command Prompt for VS 2022" (o Ninja vem com o CMake do Visual Studio ou em `Tools`, do Qt):
-
-```bat
-set CMAKE_PREFIX_PATH=C:\Qt\6.12.0\msvc2022_64
-set PATH=%CMAKE_PREFIX_PATH%\bin;%PATH%
-cmake --preset release
-cmake --build --preset release
-ctest --preset release
-build\release\src\app\appDicomViewer.exe tests\data\CT_small.dcm
 ```
 
 ### Observações para todas as plataformas
