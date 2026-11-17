@@ -10,16 +10,16 @@ Optional extras: Window Level/Width, metadata, RGB. Deadline: 3 days.
 |---|---|
 | Qt | 6.12.0, Qt Quick + Controls **Material** style, Quick3D |
 | C++ | **C++23**, errors via `std::expected<T, DicomError>`; no exceptions cross into QML |
-| DICOM lib | **DCMTK 3.7.1** (`DicomImage` handles Modality LUT, VOI, MONOCHROME1/2, RGB/YBR). Codecs: JPEG, JPEG-LS, RLE. JPEG2000 = documented limitation (clear error) |
+| DICOM lib | **DCMTK 3.7.1** (`DicomImage` handles Modality LUT, VOI, MONOCHROME1/2, RGB/YBR). Codecs: JPEG, JPEG-LS, RLE. JPEG2000 and Deflated (DCMTK built without zlib) = documented limitation (clear `UnsupportedTransferSyntax` error) |
 | Dependencies | **CMake + Qt only**, no package manager. DCMTK 3.7.1 and Catch2 v3 via `FetchContent` pinned by tag, with `FIND_PACKAGE_ARGS` (uses an installed copy if found, else downloads and builds it). DCMTK built static, apps/docs off. Requires CMake >= 3.24, Qt from official installer |
 | Tests | **Catch2 v3**: unit tests + BDD (`tests/features/*.feature` as spec, steps as `SCENARIO/GIVEN/WHEN/THEN`), run by `ctest` |
 | Test data | ~5 small pydicom files (MIT) committed in `tests/data/` with source license |
-| Icons | **Font Awesome 6 Free** (Solid, OFL-1.1) bundled as font resource |
+| Icons | **Font Awesome 7 Free** (Solid, OFL-1.1) bundled as font resource |
 | Theme | Light/Dark toggle; first run follows system; persisted (`QSettings`) |
 | i18n | UI strings in EN with `qsTr()`; **PT-BR** translation (`.ts` -> `.qm` via `qt_add_translations`); language menu in toolbar, runtime switch, persisted |
 | README | `README.md` (EN) + `README.pt-BR.md` |
 | Dev loop | `QmlPreviewMcpServer` (Qt 6.12 bin) for QML hot reload; Debug builds define `QT_QML_DEBUG` |
-| macOS toolchain | Use Xcode toolchain/SDK (`/usr/bin/clang++` + CommandLineTools SDK 27 fails to link on this machine) |
+| macOS toolchain | Use Xcode toolchain/SDK (`/usr/bin/clang++` + CommandLineTools SDK 27 fails to link on this machine). Machine-specific values (Qt path, `CMAKE_OSX_SYSROOT`) live in a gitignored `CMakeUserPresets.json`; committed `CMakePresets.json` is generic (`debug`, `release`). Local build: `cmake --preset debug-local && cmake --build --preset debug-local && ctest --preset debug-local` |
 
 ## 2. UI
 
@@ -63,25 +63,27 @@ src/
   core/            pure C++23 + DCMTK, no Qt GUI (unit-testable)
     DicomError.h       enum ErrorCode, Severity, message, optional tag
     DicomFile.*        load(path) -> expected<DicomFile, DicomError>; codec registration (once)
-    PixelData.*        frames, rows/cols, spacing, photometric, raw modality values (HU), min/max
-    Windowing.*        VOI presets, apply W/L -> 8-bit, invert, colormap LUTs
+    PixelData.cpp      DicomFile::rawModalityValues / valueAt (HU)
+    Windowing.*        VOI presets, applyWindow, renderFrame (DCMTK DicomImage) + invert
+    Colormap.cpp       Gray/Bone/Hot/Jet LUTs
     Metadata.*         flat list of tags (group, element, name, VR, value) via DcmObject walk
     Orientation.*      orientation labels from (0020,0037)
     Volume.*           multi-frame or series -> 3D scalar volume (sorted by Image Position)
   app/             Qt glue
-    DicomController    QML_SINGLETON: open/reset, state, W/L props, frame, backend, render time
-    DicomImageProvider QQuickImageProvider for CPU path
-    MetadataModel      QAbstractTableModel + QSortFilterProxyModel
-    ErrorModel         QAbstractListModel (preview vs real)
-    AppSettings        theme, language, last dir (QSettings)
+    DicomController    QML_SINGLETON (default-constructed; main.cpp adds its provider): open/reset,
+                       state, W/L props, frame, invert, colormap, render time; owns the models
+    DicomImageProvider QQuickImageProvider for CPU path, reads the controller's FrameStore
+    MetadataModel      QAbstractListModel (rows ordered by category) + MetadataFilterModel (QSortFilterProxyModel)
+    ErrorModel         QAbstractListModel (preview vs real); ErrorText maps ErrorCode -> translated text
+    AppSettings        theme, last dir (QSettings); LanguageManager: language
     LanguageManager    QTranslator swap + engine.retranslate()
     HeightmapGeometry  QQuick3DGeometry from current frame
     VolumeTexture      QQuick3DTextureData (3D texture) for ray-march material
-qml/
-  Main.qml, Splash.qml, TopBar.qml, ViewerPane.qml, View2D.qml, View3D.qml,
-  OptionsPane.qml, MetadataPanel.qml, ErrorsPanel.qml, StatusBar.qml, Icon.qml
+  app/qml/         (inside src/app so Qt Creator lists the files under the target)
+  Main.qml, Splash.qml, TopBar.qml, View2D.qml (ViewerPane.qml arrives with View3D.qml),
+  View3D.qml, OptionsPane.qml, MetadataPanel.qml, ErrorsPanel.qml, StatusBar.qml, Icon.qml
   shaders/ windowing.frag (GPU path), volume.frag (ray-march)
-resources/fonts/fa-solid-900.otf, resources/icons/app.svg
+  app/resources/fonts/fa-solid-900.otf, app/resources/icons/app.svg
 i18n/dicomviewer_pt_BR.ts
 tests/
   unit/*.cpp, bdd/*.cpp, features/*.feature, data/*.dcm
@@ -98,7 +100,7 @@ Render paths (same input, comparable output):
 
 ## 4. Error handling
 
-`ErrorCode`: FileNotFound, FileUnreadable, NotDicom, NoPixelData, UnsupportedTransferSyntax, UnsupportedPhotometric, CorruptPixelData, DecodeFailed, VolumeInconsistent. Each maps to a translated user message plus a technical detail (DCMTK `OFCondition` text). Load runs off the GUI thread (`QtConcurrent`), and the UI shows a busy indicator. A failed load leaves the previous image untouched.
+`ErrorCode`: FileNotFound, FileUnreadable, NotDicom, NoPixelData, UnsupportedTransferSyntax, UnsupportedPhotometric, CorruptPixelData, DecodeFailed, VolumeInconsistent, FrameOutOfRange. Each maps to a translated user message plus a technical detail (DCMTK `OFCondition` text). Load runs off the GUI thread (`QtConcurrent`), and the UI shows a busy indicator. A failed load leaves the previous image, metadata and window untouched; the one exception is a valid file without Pixel Data, which shows its metadata (no image) plus the error. Starting a new load, or New, makes any load in flight obsolete (generation counter). Rendering also runs on a worker; changes made while a render runs are coalesced into one more render with the latest values.
 
 ## 5. Tests
 
@@ -128,7 +130,7 @@ QML: `qmltestrunner` smoke tests (TopBar tooltips present, toggles flip panels).
 
 1. Scaffold: CMake + FetchContent (DCMTK, Catch2) + Material + FA font + i18n wiring + Splash; build green.
 2. Core: DicomFile/PixelData/Windowing/Metadata/Orientation + unit tests (TDD).
-3. App glue: controller, models, image provider (CPU), error flow + BDD tests.
+3. App glue: controller, models, image provider (CPU), error flow + BDD tests, plus the first UI flow (Open dialog, drop, command line file, 2D view with zoom/pan/W-L mouse, metadata and errors panels, status bar). Adds Qt6::Concurrent; the Open dialog is `QtQuick.Dialogs` (no extra CMake component needed). `app/` tests compile the Qt glue sources again (same files as the app, no QML module) into `dicomapp_tests`.
 4. UI: TopBar, SplitView panels, Options pane, status bar, themes, language menu.
 5. GPU render path + timing toggle.
 6. 3D: heightmap, then volume for multi-frame.
